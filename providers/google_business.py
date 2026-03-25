@@ -16,7 +16,6 @@ from .types import (
     PostType,
     PublishContent,
     PublishResult,
-    RateLimitConfig,
 )
 
 logger = logging.getLogger(__name__)

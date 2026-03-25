@@ -231,6 +231,18 @@ def oauth_callback(request, platform):
 
     workspace_id = state_data["workspace_id"]
 
+    # Re-check workspace membership — user may have lost access during OAuth
+    from apps.members.models import WorkspaceMembership
+
+    ws_membership = WorkspaceMembership.objects.filter(
+        user=request.user, workspace_id=workspace_id
+    ).first()
+    if not ws_membership:
+        raise PermissionDenied("You no longer have access to this workspace.")
+    perms = ws_membership.effective_permissions
+    if not perms.get("manage_social_accounts", False):
+        raise PermissionDenied("You no longer have permission to manage social accounts.")
+
     try:
         provider = _get_provider_for_platform(platform, request.org.id)
         redirect_uri = _build_redirect_uri(request, platform)
@@ -265,7 +277,7 @@ def oauth_callback(request, platform):
                         platform_id=page["id"],
                         name=page["name"],
                         handle=page.get("handle"),
-                        avatar_url=page.get("picture", {}).get("data", {}).get("url", ""),
+                        avatar_url=page.get("picture", ""),
                         follower_count=page.get("followers_count", 0),
                     ),
                     access_token=page.get("access_token", tokens.access_token),
@@ -350,7 +362,7 @@ def select_account(request):
                 platform_id=page["id"],
                 name=page["name"],
                 handle=page.get("handle"),
-                avatar_url=page.get("picture", {}).get("data", {}).get("url", ""),
+                avatar_url=page.get("picture", ""),
                 follower_count=page.get("followers_count", 0),
             )
             _create_or_update_account(

@@ -1,6 +1,5 @@
 """Tests for social_accounts models."""
 
-import uuid
 from datetime import timedelta
 
 import pytest

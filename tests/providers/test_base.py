@@ -4,7 +4,6 @@ import pytest
 
 from providers import PROVIDER_REGISTRY, get_provider
 from providers.base import SocialProvider
-from providers.exceptions import APIError, RateLimitError
 from providers.types import AuthType, PostType
 
 

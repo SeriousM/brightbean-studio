@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from urllib.parse import urlencode
 
 import httpx
@@ -11,7 +10,6 @@ import httpx
 from .base import SocialProvider
 from .exceptions import APIError, OAuthError, PublishError
 from .types import (
-    AccountMetrics,
     AccountProfile,
     AuthType,
     CommentResult,
@@ -540,6 +538,6 @@ class LinkedInProvider(SocialProvider):
         # Extract the numeric ID from the URN
         parts = urn.split(":")
         if len(parts) >= 4:
-            post_id = parts[-1]
+            parts[-1]
             return f"https://www.linkedin.com/feed/update/{urn}/"
         return None

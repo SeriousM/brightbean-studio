@@ -43,6 +43,15 @@ CONTAINER_POLL_MAX_ATTEMPTS = 60
 class InstagramProvider(SocialProvider):
     """Instagram Graph API provider (via Facebook Graph API v21.0)."""
 
+    def __init__(self, credentials: dict | None = None):
+        creds = dict(credentials or {})
+        # Normalize: accept app_id/app_secret as aliases for client_id/client_secret
+        if "app_id" in creds and "client_id" not in creds:
+            creds["client_id"] = creds.pop("app_id")
+        if "app_secret" in creds and "client_secret" not in creds:
+            creds["client_secret"] = creds.pop("app_secret")
+        super().__init__(creds)
+
     # ------------------------------------------------------------------
     # Metadata
     # ------------------------------------------------------------------

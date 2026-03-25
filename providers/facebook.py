@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from datetime import datetime
 from urllib.parse import urlencode
 
@@ -34,6 +33,15 @@ TOKEN_URL = f"{BASE_URL}/oauth/access_token"
 
 class FacebookProvider(SocialProvider):
     """Facebook Graph API v21.0 provider."""
+
+    def __init__(self, credentials: dict | None = None):
+        creds = dict(credentials or {})
+        # Normalize: accept app_id/app_secret as aliases for client_id/client_secret
+        if "app_id" in creds and "client_id" not in creds:
+            creds["client_id"] = creds.pop("app_id")
+        if "app_secret" in creds and "client_secret" not in creds:
+            creds["client_secret"] = creds.pop("app_secret")
+        super().__init__(creds)
 
     # ------------------------------------------------------------------
     # Metadata

@@ -12,7 +12,6 @@ from .types import (
     AuthType,
     MediaType,
     OAuthTokens,
-    PostMetrics,
     PostType,
     PublishContent,
     PublishResult,

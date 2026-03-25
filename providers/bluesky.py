@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import logging
 import re
-import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .base import SocialProvider
-from .exceptions import APIError, OAuthError, PublishError
+from .exceptions import PublishError
 from .types import (
     AccountProfile,
     AuthType,
     MediaType,
     OAuthTokens,
-    PostMetrics,
     PostType,
     PublishContent,
     PublishResult,
@@ -213,7 +211,7 @@ class BlueskyProvider(SocialProvider):
         ).json()
         did = session["did"]
 
-        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
         record: dict = {
             "$type": "app.bsky.feed.post",
@@ -265,7 +263,7 @@ class BlueskyProvider(SocialProvider):
         Byte offsets are computed over the UTF-8 encoding of the text.
         """
         facets: list[dict] = []
-        text_bytes = text.encode("utf-8")
+        text.encode("utf-8")
 
         # Links
         link_pattern = re.compile(r"https?://[^\s\)\]>]+")
