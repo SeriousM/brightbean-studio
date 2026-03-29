@@ -1,10 +1,43 @@
 """Queue scheduling services for the Content Calendar (F-2.3)."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from django.utils import timezone
 
-from .models import PostingSlot, QueueEntry
+from .models import PostingSlot, Queue, QueueEntry
+
+# Default posting slots created automatically for newly connected channels.
+DEFAULT_POSTING_SLOTS = {
+    0: [time(9, 24), time(10, 10), time(11, 26), time(12, 42)],  # Monday
+    1: [time(9, 55), time(10, 41), time(11, 57), time(12, 13)],  # Tuesday
+    2: [time(9, 30), time(10, 17), time(11, 32), time(12, 41)],  # Wednesday
+    3: [time(9, 38), time(10, 52)],                                # Thursday
+}
+
+
+def create_default_queue_and_slots(social_account):
+    """Create a default Queue and PostingSlots for a newly connected social account.
+
+    Skips creation if the account already has a queue (e.g. on re-connection).
+    """
+    if Queue.objects.filter(social_account=social_account).exists():
+        return None
+
+    queue = Queue.objects.create(
+        workspace=social_account.workspace,
+        name=f"{social_account.account_name} Queue",
+        social_account=social_account,
+    )
+
+    slots = []
+    for day, times in DEFAULT_POSTING_SLOTS.items():
+        for t in times:
+            slots.append(
+                PostingSlot(social_account=social_account, day_of_week=day, time=t)
+            )
+    PostingSlot.objects.bulk_create(slots, ignore_conflicts=True)
+
+    return queue
 
 
 def _next_slot_datetimes(social_account, after_dt, count=30):

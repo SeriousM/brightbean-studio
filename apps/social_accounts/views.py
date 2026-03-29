@@ -636,4 +636,10 @@ def _create_or_update_account(
             "last_error": "",
         },
     )
+
+    if created:
+        from apps.calendar.services import create_default_queue_and_slots
+
+        create_default_queue_and_slots(account)
+
     return account
