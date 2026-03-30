@@ -17,7 +17,7 @@ from apps.social_accounts.models import SocialAccount
 from apps.workspaces.models import Workspace
 
 from .holidays import get_holidays_for_range
-from .models import CustomCalendarEvent, PostingSlot, Queue
+from .models import CustomCalendarEvent, PostingSlot, Queue, QueueEntry
 
 # Common timezones for the publish page timezone dropdown
 COMMON_TIMEZONES = [
@@ -147,6 +147,10 @@ def _get_publish_context(workspace, request):
         "display_timezone": display_timezone,
         "timezone_choices": tz_list,
         "workspace_timezone": ws_tz,
+        "queue_count": Post.objects.for_workspace(workspace.id).filter(status="scheduled").count(),
+        "drafts_count": Post.objects.for_workspace(workspace.id).filter(status="draft").count(),
+        "approvals_count": Post.objects.for_workspace(workspace.id).filter(status__in=["pending_review", "pending_client"]).count(),
+        "sent_count": Post.objects.for_workspace(workspace.id).filter(status__in=["published", "partially_published"]).count(),
     }
 
 
@@ -167,7 +171,7 @@ def _apply_publish_filters(qs, request):
 def calendar_view(request, workspace_id):
     """Main publish page — renders calendar or list mode."""
     workspace = _get_workspace(request, workspace_id)
-    mode = request.GET.get("mode", "list")
+    mode = request.GET.get("mode", "calendar")
     active_tab = request.GET.get("tab", "queue")
     view_type = request.GET.get("view", "month")
     target_date = _parse_date(request.GET.get("date"))
@@ -470,22 +474,26 @@ def _list_view(request, workspace, target_date, context):
 
 @login_required
 def publish_tab_queue(request, workspace_id):
-    """HTMX partial: Queue tab content for the publish page."""
+    """HTMX partial: Queue tab content — shows all scheduled posts."""
     workspace = _get_workspace(request, workspace_id)
-    queues = Queue.objects.for_workspace(workspace.id).select_related("social_account", "category")
-    accounts = SocialAccount.objects.for_workspace(workspace.id).filter(
-        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    display_tz = request.GET.get("tz", workspace.effective_timezone or "UTC")
+
+    posts = (
+        Post.objects.for_workspace(workspace.id)
+        .filter(status="scheduled")
+        .select_related("author")
+        .prefetch_related("platform_posts__social_account", "media_attachments__media_asset")
+        .order_by("scheduled_at", "-created_at")
     )
-    categories = ContentCategory.objects.for_workspace(workspace.id)
+    posts = _apply_publish_filters(posts, request)
 
     return render(
         request,
         "calendar/partials/publish_queue.html",
         {
             "workspace": workspace,
-            "queues": queues,
-            "accounts": accounts,
-            "categories": categories,
+            "posts": posts[:200],
+            "display_timezone": display_tz,
         },
     )
 
