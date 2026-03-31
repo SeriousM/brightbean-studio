@@ -65,6 +65,13 @@
   --text-ghost:     var(--neutral-400);
   --text-inverse:   #FFFFFF;
 
+  /* Illustrations */
+  --color-illustration-border: var(--neutral-200);
+  --color-illustration-card: #FFFFFF;
+  --color-illustration-element: var(--neutral-200);
+  --color-illustration-secondary-element: var(--neutral-100);
+  --color-illustration-accent: var(--brand-500);
+
   /* Status */
   --success-500: #22C55E; --success-50: #F0FDF4; --success-700: #15803D;
   --warning-500: #EAB308; --warning-50: #FEFCE8; --warning-700: #A16207;

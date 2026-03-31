@@ -461,12 +461,17 @@ def _list_view(request, workspace, target_date, context):
     """Render list/table view of posts."""
     posts = _get_filtered_posts(workspace, request).order_by("-scheduled_at", "-created_at")[:200]
 
+    has_connected_accounts = SocialAccount.objects.filter(
+        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    ).exists()
+
     context.update(
         {
             "posts": posts,
             "period_label": "All Posts",
             "prev_date": target_date.isoformat(),
             "next_date": target_date.isoformat(),
+            "has_connected_accounts": has_connected_accounts,
         }
     )
 
@@ -494,6 +499,10 @@ def publish_tab_queue(request, workspace_id):
     )
     posts = _apply_publish_filters(posts, request)
 
+    has_connected_accounts = SocialAccount.objects.filter(
+        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    ).exists()
+
     return render(
         request,
         "calendar/partials/publish_queue.html",
@@ -501,6 +510,7 @@ def publish_tab_queue(request, workspace_id):
             "workspace": workspace,
             "posts": posts[:200],
             "display_timezone": display_tz,
+            "has_connected_accounts": has_connected_accounts,
         },
     )
 
@@ -520,6 +530,10 @@ def publish_tab_drafts(request, workspace_id):
     )
     posts = _apply_publish_filters(posts, request)
 
+    has_connected_accounts = SocialAccount.objects.filter(
+        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    ).exists()
+
     return render(
         request,
         "calendar/partials/publish_drafts.html",
@@ -527,6 +541,7 @@ def publish_tab_drafts(request, workspace_id):
             "workspace": workspace,
             "posts": posts[:200],
             "display_timezone": display_tz,
+            "has_connected_accounts": has_connected_accounts,
         },
     )
 
@@ -591,6 +606,10 @@ def publish_tab_sent(request, workspace_id):
     )
     posts = _apply_publish_filters(posts, request)
 
+    has_connected_accounts = SocialAccount.objects.filter(
+        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    ).exists()
+
     return render(
         request,
         "calendar/partials/publish_sent.html",
@@ -598,6 +617,7 @@ def publish_tab_sent(request, workspace_id):
             "workspace": workspace,
             "posts": posts[:200],
             "display_timezone": display_tz,
+            "has_connected_accounts": has_connected_accounts,
         },
     )
 

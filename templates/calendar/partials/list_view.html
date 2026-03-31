@@ -53,6 +53,9 @@ Context: posts, workspace.
         </tbody>
     </table>
     {% else %}
+    {% if not has_connected_accounts %}
+    {% include "calendar/partials/_no_channels_empty_state.html" %}
+    {% else %}
     <!-- Empty state -->
     <div class="text-center py-20 px-6">
         <div class="w-16 h-16 mx-auto rounded-2xl bg-stone-100 flex items-center justify-center mb-4">
@@ -66,5 +69,6 @@ Context: posts, workspace.
             Create Post
         </a>
     </div>
+    {% endif %}
     {% endif %}
 </div>
