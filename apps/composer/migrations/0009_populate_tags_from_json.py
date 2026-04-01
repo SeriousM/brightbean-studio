@@ -19,16 +19,13 @@ def populate_tags(apps, schema_editor):
                 key = (obj.workspace_id, tag_name)
                 if key not in seen:
                     seen.add(key)
-                    tags_to_create.append(
-                        Tag(workspace_id=obj.workspace_id, name=tag_name)
-                    )
+                    tags_to_create.append(Tag(workspace_id=obj.workspace_id, name=tag_name))
 
     if tags_to_create:
         Tag.objects.bulk_create(tags_to_create, ignore_conflicts=True)
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("composer", "0008_add_tag_model"),
     ]

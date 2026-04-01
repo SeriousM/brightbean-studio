@@ -7,25 +7,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('composer', '0007_platformpost_platform_specific_title_post_title'),
-        ('workspaces', '0002_replace_icon_url_with_icon'),
+        ("composer", "0007_platformpost_platform_specific_title_post_title"),
+        ("workspaces", "0002_replace_icon_url_with_icon"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Tag',
+            name="Tag",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('workspace', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tags', to='workspaces.workspace')),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "workspace",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="tags", to="workspaces.workspace"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'composer_tag',
-                'ordering': ['name'],
-                'unique_together': {('workspace', 'name')},
+                "db_table": "composer_tag",
+                "ordering": ["name"],
+                "unique_together": {("workspace", "name")},
             },
         ),
     ]

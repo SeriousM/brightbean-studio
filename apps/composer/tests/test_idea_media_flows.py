@@ -80,7 +80,9 @@ class IdeaMediaFlowsTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         idea = Idea.objects.get(title="Idea A")
-        attachment_ids = [str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        attachment_ids = [
+            str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
 
         self.assertEqual(attachment_ids, [str(asset_two.id), str(asset_one.id)])
         self.assertEqual(idea.media_asset_id, asset_two.id)
@@ -114,7 +116,9 @@ class IdeaMediaFlowsTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         idea.refresh_from_db()
-        attachment_ids = [str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        attachment_ids = [
+            str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
 
         self.assertEqual(attachment_ids, [str(asset_two.id), str(asset_one.id), str(asset_three.id)])
         self.assertEqual(idea.media_asset_id, asset_two.id)
@@ -147,7 +151,9 @@ class IdeaMediaFlowsTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         idea.refresh_from_db()
-        attachment_ids = [str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        attachment_ids = [
+            str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
 
         self.assertEqual(attachment_ids, [str(asset_two.id)])
         self.assertEqual(idea.media_asset_id, asset_two.id)
@@ -234,7 +240,9 @@ class IdeaMediaFlowsTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         idea = Idea.objects.get(title="Idea F")
-        attachment_ids = [str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        attachment_ids = [
+            str(mid) for mid in idea.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
 
         self.assertEqual(idea.media_asset_id, asset.id)
         self.assertEqual(attachment_ids, [str(asset.id)])
@@ -350,7 +358,9 @@ class IdeaMediaFlowsTests(TestCase):
         self.assertEqual(post.tags, idea.tags)
         self.assertEqual(idea.post_id, post.id)
 
-        media_ids = [str(mid) for mid in post.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        media_ids = [
+            str(mid) for mid in post.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
         self.assertEqual(media_ids, [str(asset_two.id), str(asset_one.id)])
 
         platform_ids = set(post.platform_posts.values_list("social_account_id", flat=True))
@@ -407,7 +417,9 @@ class IdeaMediaFlowsTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         post = Post.objects.get(id=response.json()["post_id"])
-        media_ids = [str(mid) for mid in post.media_attachments.order_by("position").values_list("media_asset_id", flat=True)]
+        media_ids = [
+            str(mid) for mid in post.media_attachments.order_by("position").values_list("media_asset_id", flat=True)
+        ]
         self.assertEqual(media_ids, [str(asset.id)])
 
     def test_idea_create_post_response_contains_redirectable_compose_url_and_post_id(self):

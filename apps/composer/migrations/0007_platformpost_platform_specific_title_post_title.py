@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('composer', '0006_populate_default_idea_groups'),
+        ("composer", "0006_populate_default_idea_groups"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='platformpost',
-            name='platform_specific_title',
+            model_name="platformpost",
+            name="platform_specific_title",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='post',
-            name='title',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="post",
+            name="title",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
     ]

@@ -5,16 +5,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('composer', '0010_add_feed_model'),
-        ('media_library', '0002_mediaasset_is_starred_mediaasset_organization_and_more'),
+        ("composer", "0010_add_feed_model"),
+        ("media_library", "0002_mediaasset_is_starred_mediaasset_organization_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='idea',
-            name='media_asset',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='idea_usages', to='media_library.mediaasset'),
+            model_name="idea",
+            name="media_asset",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="idea_usages",
+                to="media_library.mediaasset",
+            ),
         ),
     ]

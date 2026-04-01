@@ -65,11 +65,7 @@ def cross_workspace_calendar(request):
     )
 
     # Tags across filtered workspaces
-    all_tags = sorted(
-        set(
-            Tag.objects.filter(workspace__in=filtered_workspaces).values_list("name", flat=True)
-        )
-    )
+    all_tags = sorted(set(Tag.objects.filter(workspace__in=filtered_workspaces).values_list("name", flat=True)))
 
     # Base post queryset with filters
     base_posts = (
@@ -108,20 +104,22 @@ def cross_workspace_calendar(request):
     else:
         context = _build_month_context(base_posts, target_date, today)
 
-    context.update({
-        "organization": org,
-        "workspaces": workspaces,
-        "selected_workspace_ids": selected_ws_ids,
-        "workspace_colors": workspace_colors,
-        "target_date": target_date,
-        "default_workspace": workspaces.first(),
-        "day_names": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-        "settings_active": "calendars",
-        "view_type": view_type,
-        "social_accounts": social_accounts,
-        "all_tags": all_tags,
-        "status_choices": Post.Status.choices,
-    })
+    context.update(
+        {
+            "organization": org,
+            "workspaces": workspaces,
+            "selected_workspace_ids": selected_ws_ids,
+            "workspace_colors": workspace_colors,
+            "target_date": target_date,
+            "default_workspace": workspaces.first(),
+            "day_names": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            "settings_active": "calendars",
+            "view_type": view_type,
+            "social_accounts": social_accounts,
+            "all_tags": all_tags,
+            "status_choices": Post.Status.choices,
+        }
+    )
     return render(request, "organizations/cross_calendar.html", context)
 
 
@@ -132,13 +130,10 @@ def _build_month_context(base_posts, target_date, today):
     first_day = weeks[0][0]
     last_day = weeks[-1][6]
 
-    posts = (
-        base_posts.filter(
-            scheduled_at__date__gte=first_day,
-            scheduled_at__date__lte=last_day,
-        )
-        .order_by("scheduled_at")
-    )
+    posts = base_posts.filter(
+        scheduled_at__date__gte=first_day,
+        scheduled_at__date__lte=last_day,
+    ).order_by("scheduled_at")
 
     posts_by_date = defaultdict(list)
     for post in posts:
@@ -178,13 +173,10 @@ def _build_week_context(base_posts, target_date, today):
     monday = target_date - timedelta(days=target_date.weekday())
     week_days = [monday + timedelta(days=i) for i in range(7)]
 
-    posts = (
-        base_posts.filter(
-            scheduled_at__date__gte=week_days[0],
-            scheduled_at__date__lte=week_days[6],
-        )
-        .order_by("scheduled_at")
-    )
+    posts = base_posts.filter(
+        scheduled_at__date__gte=week_days[0],
+        scheduled_at__date__lte=week_days[6],
+    ).order_by("scheduled_at")
 
     posts_by_slot = defaultdict(list)
     for post in posts:
@@ -206,10 +198,7 @@ def _build_week_context(base_posts, target_date, today):
 
 
 def _build_day_context(base_posts, target_date, today):
-    posts = (
-        base_posts.filter(scheduled_at__date=target_date)
-        .order_by("scheduled_at")
-    )
+    posts = base_posts.filter(scheduled_at__date=target_date).order_by("scheduled_at")
 
     posts_by_hour = defaultdict(list)
     for post in posts:

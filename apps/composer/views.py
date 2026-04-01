@@ -146,7 +146,9 @@ def compose(request, workspace_id, post_id=None):
     session_key = f"pending_media_{workspace.id}"
     pending_media_ids = request.session.get(session_key, [])
     pending_assets = (
-        MediaAsset.objects.filter(id__in=pending_media_ids, workspace=workspace) if pending_media_ids and not post else MediaAsset.objects.none()
+        MediaAsset.objects.filter(id__in=pending_media_ids, workspace=workspace)
+        if pending_media_ids and not post
+        else MediaAsset.objects.none()
     )
 
     # Connected social accounts for this workspace
@@ -583,11 +585,13 @@ def preview(request, workspace_id):
             post_obj = Post.objects.get(id=post_id_str, workspace=workspace)
             for att in post_obj.media_attachments.select_related("media_asset").all():
                 asset = att.media_asset
-                media_items.append({
-                    "url": asset.file.url if asset.file else "",
-                    "is_video": asset.is_video,
-                    "filename": asset.filename,
-                })
+                media_items.append(
+                    {
+                        "url": asset.file.url if asset.file else "",
+                        "is_video": asset.is_video,
+                        "filename": asset.filename,
+                    }
+                )
         except Post.DoesNotExist:
             pass
 
@@ -597,11 +601,13 @@ def preview(request, workspace_id):
         pending_ids = request.session.get(session_key, [])
         if pending_ids:
             for asset in MediaAsset.objects.filter(id__in=pending_ids, workspace=workspace):
-                media_items.append({
-                    "url": asset.file.url if asset.file else "",
-                    "is_video": asset.is_video,
-                    "filename": asset.filename,
-                })
+                media_items.append(
+                    {
+                        "url": asset.file.url if asset.file else "",
+                        "is_video": asset.is_video,
+                        "filename": asset.filename,
+                    }
+                )
 
     return render(
         request,
@@ -1031,7 +1037,9 @@ def _sync_idea_media_attachments(idea, workspace, ordered_asset_ids):
     if normalized_ids:
         valid_assets = set(
             str(aid)
-            for aid in MediaAsset.objects.filter(workspace=workspace, id__in=normalized_ids).values_list("id", flat=True)
+            for aid in MediaAsset.objects.filter(workspace=workspace, id__in=normalized_ids).values_list(
+                "id", flat=True
+            )
         )
         ordered_ids = [aid for aid in normalized_ids if aid in valid_assets]
     else:
@@ -1493,12 +1501,7 @@ def idea_group_create(request, workspace_id):
             return JsonResponse({"error": "Name is required."}, status=400)
         return HttpResponse("Name is required.", status=400)
 
-    max_pos = (
-        IdeaGroup.objects.for_workspace(workspace.id).aggregate(
-            models.Max("position")
-        )["position__max"]
-        or 0
-    )
+    max_pos = IdeaGroup.objects.for_workspace(workspace.id).aggregate(models.Max("position"))["position__max"] or 0
     group = IdeaGroup.objects.create(workspace=workspace, name=name, position=max_pos + 1)
 
     if _wants_json_response(request):
@@ -2136,12 +2139,7 @@ def _extract_image_url(entry, summary_raw):
         url = (node.attrib.get("url") or node.attrib.get("href") or node.attrib.get("src") or "").strip()
         media_type = (node.attrib.get("type") or "").lower()
         medium = (node.attrib.get("medium") or "").lower()
-        if url and (
-            name == "thumbnail"
-            or medium == "image"
-            or media_type.startswith("image/")
-            or not media_type
-        ):
+        if url and (name == "thumbnail" or medium == "image" or media_type.startswith("image/") or not media_type):
             return url
 
     if summary_raw:
@@ -2297,25 +2295,22 @@ def _fetch_feed_events_for_workspace(feeds):
 def _get_cached_workspace_feed_events(workspace, feeds, force_refresh=False):
     """Return cached feed events and last refresh time for workspace feeds."""
     cache_key = _feed_events_cache_key(workspace.id)
-    signature = tuple(
-        (str(feed.id), feed.url, feed.name, feed.website_url)
-        for feed in feeds
-    )
+    signature = tuple((str(feed.id), feed.url, feed.name, feed.website_url) for feed in feeds)
     cached = cache.get(cache_key)
-    if (
-        cached
-        and not force_refresh
-        and cached.get("signature") == signature
-    ):
+    if cached and not force_refresh and cached.get("signature") == signature:
         return cached.get("events", []), cached.get("fetched_at")
 
     events = _fetch_feed_events_for_workspace(feeds)
     fetched_at = timezone.now()
-    cache.set(cache_key, {
-        "signature": signature,
-        "events": events,
-        "fetched_at": fetched_at,
-    }, FEED_EVENTS_CACHE_TTL_SECONDS)
+    cache.set(
+        cache_key,
+        {
+            "signature": signature,
+            "events": events,
+            "fetched_at": fetched_at,
+        },
+        FEED_EVENTS_CACHE_TTL_SECONDS,
+    )
     return events, fetched_at
 
 
@@ -2331,7 +2326,7 @@ def _build_feed_events_context(workspace, selected_feed_id="all", offset=0):
     selected_feed = next((feed for feed in feeds if str(feed.id) == selected_feed_id), None)
     events, last_refreshed_at = _get_cached_workspace_feed_events(workspace, feeds)
     filtered_events = _filter_events_for_feed(events, selected_feed_id)
-    page_events = filtered_events[offset:offset + FEED_EVENTS_PAGE_SIZE]
+    page_events = filtered_events[offset : offset + FEED_EVENTS_PAGE_SIZE]
     next_offset = offset + FEED_EVENTS_PAGE_SIZE
     has_more = len(filtered_events) > next_offset
     return {
@@ -2357,12 +2352,14 @@ def _render_feeds_tab(
 ):
     """Render the feeds tab partial with modal state and first event page."""
     context = _build_feed_events_context(workspace, selected_feed_id=selected_feed_id, offset=0)
-    context.update({
-        "workspace": workspace,
-        "show_add_modal": show_add_modal,
-        "add_rss_url": add_rss_url,
-        "add_error": add_error,
-    })
+    context.update(
+        {
+            "workspace": workspace,
+            "show_add_modal": show_add_modal,
+            "add_rss_url": add_rss_url,
+            "add_error": add_error,
+        }
+    )
     return render(request, "composer/partials/feeds_tab.html", context)
 
 
@@ -2384,10 +2381,14 @@ def _validate_rss_url(rss_url):
     if not parsed_feed:
         return False, "This URL is reachable, but it does not appear to be a valid RSS/Atom feed.", {}
 
-    return True, "", {
-        "title": parsed_feed.get("title", "").strip(),
-        "website_url": parsed_feed.get("website_url", "").strip(),
-    }
+    return (
+        True,
+        "",
+        {
+            "title": parsed_feed.get("title", "").strip(),
+            "website_url": parsed_feed.get("website_url", "").strip(),
+        },
+    )
 
 
 @login_required
@@ -2402,10 +2403,12 @@ def feed_list(request, workspace_id):
 
     if is_append:
         context = _build_feed_events_context(workspace, selected_feed_id=selected_feed_id, offset=offset)
-        context.update({
-            "workspace": workspace,
-            "show_empty": False,
-        })
+        context.update(
+            {
+                "workspace": workspace,
+                "show_empty": False,
+            }
+        )
         return render(request, "composer/partials/feed_events_batch.html", context)
 
     return _render_feeds_tab(request, workspace, selected_feed_id=selected_feed_id)
@@ -2527,16 +2530,18 @@ def _render_explore(request, workspace, category):
     """Shared helper to render the explore feeds partial."""
     from .curated_feeds import get_feed_categories, get_feeds_for_category
 
-    subscribed_urls = set(
-        Feed.objects.for_workspace(workspace.id).values_list("url", flat=True)
-    )
+    subscribed_urls = set(Feed.objects.for_workspace(workspace.id).values_list("url", flat=True))
     curated = get_feeds_for_category(category)
     for feed in curated:
         feed["subscribed"] = feed["rss"] in subscribed_urls
 
-    return render(request, "composer/partials/feeds_explore.html", {
-        "workspace": workspace,
-        "categories": get_feed_categories(),
-        "active_category": category,
-        "curated_feeds": curated,
-    })
+    return render(
+        request,
+        "composer/partials/feeds_explore.html",
+        {
+            "workspace": workspace,
+            "categories": get_feed_categories(),
+            "active_category": category,
+            "curated_feeds": curated,
+        },
+    )

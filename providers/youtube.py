@@ -326,9 +326,7 @@ class YouTubeProvider(SocialProvider):
 
             for thread in body.get("items", []):
                 top_snippet = thread["snippet"]["topLevelComment"]["snippet"]
-                published = datetime.fromisoformat(
-                    top_snippet["publishedAt"].replace("Z", "+00:00")
-                )
+                published = datetime.fromisoformat(top_snippet["publishedAt"].replace("Z", "+00:00"))
 
                 if since and published < since:
                     continue
@@ -355,9 +353,7 @@ class YouTubeProvider(SocialProvider):
                 # Include reply comments in the thread
                 for reply in thread.get("replies", {}).get("comments", []):
                     r_snippet = reply["snippet"]
-                    r_published = datetime.fromisoformat(
-                        r_snippet["publishedAt"].replace("Z", "+00:00")
-                    )
+                    r_published = datetime.fromisoformat(r_snippet["publishedAt"].replace("Z", "+00:00"))
                     if since and r_published < since:
                         continue
                     messages.append(

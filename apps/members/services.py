@@ -36,9 +36,7 @@ def create_invitation(org, email, org_role, workspace_assignments, invited_by):
     email = email.strip().lower()
 
     # Check if already a member
-    if OrgMembership.objects.filter(
-        organization=org, user__email=email
-    ).exists():
+    if OrgMembership.objects.filter(organization=org, user__email=email).exists():
         raise ValueError("This person is already a member of your organization.")
 
     # Check for pending invite
@@ -49,17 +47,13 @@ def create_invitation(org, email, org_role, workspace_assignments, invited_by):
         expires_at__gt=timezone.now(),
     ).first()
     if pending:
-        raise ValueError(
-            "An invitation is already pending for this email. You can resend it instead."
-        )
+        raise ValueError("An invitation is already pending for this email. You can resend it instead.")
 
     # Validate workspace assignments belong to org
-    org_workspace_ids = set(
-        Workspace.objects.filter(organization=org, is_archived=False)
-        .values_list("id", flat=True)
-    )
+    org_workspace_ids = set(Workspace.objects.filter(organization=org, is_archived=False).values_list("id", flat=True))
     for assignment in workspace_assignments:
         import uuid as uuid_mod
+
         ws_id = uuid_mod.UUID(str(assignment["workspace_id"]))
         if ws_id not in org_workspace_ids:
             raise ValueError(f"Workspace {ws_id} does not belong to this organization.")
@@ -110,6 +104,7 @@ def accept_invitation(invitation, user):
     # Create workspace memberships
     for assignment in invitation.workspace_assignments:
         import uuid as uuid_mod
+
         ws_id = uuid_mod.UUID(str(assignment["workspace_id"]))
         role = assignment.get("role", WorkspaceMembership.WorkspaceRole.VIEWER)
         WorkspaceMembership.objects.get_or_create(
@@ -124,6 +119,7 @@ def accept_invitation(invitation, user):
     # Set last workspace for dashboard redirect
     if invitation.workspace_assignments:
         import uuid as uuid_mod
+
         first_ws_id = uuid_mod.UUID(str(invitation.workspace_assignments[0]["workspace_id"]))
         user.last_workspace_id = first_ws_id
         user.save(update_fields=["last_workspace_id"])
@@ -141,6 +137,7 @@ def resend_invitation(invitation):
         raise ValueError("This invitation has already been accepted.")
 
     import secrets
+
     invitation.token = secrets.token_urlsafe(32)
     invitation.expires_at = timezone.now() + timedelta(days=INVITE_EXPIRY_DAYS)
     invitation.save(update_fields=["token", "expires_at"])
@@ -172,9 +169,7 @@ def remove_member(org, membership, removed_by):
         raise ValueError("You cannot remove yourself from the organization.")
 
     if membership.org_role == OrgMembership.OrgRole.OWNER:
-        owner_count = OrgMembership.objects.filter(
-            organization=org, org_role=OrgMembership.OrgRole.OWNER
-        ).count()
+        owner_count = OrgMembership.objects.filter(organization=org, org_role=OrgMembership.OrgRole.OWNER).count()
         if owner_count <= 1:
             raise ValueError("Cannot remove the last organization owner.")
 
@@ -198,9 +193,7 @@ def update_member_org_role(org, membership, new_role):
         raise ValueError("Cannot promote to owner. Transfer ownership instead.")
 
     if membership.org_role == OrgMembership.OrgRole.OWNER:
-        owner_count = OrgMembership.objects.filter(
-            organization=org, org_role=OrgMembership.OrgRole.OWNER
-        ).count()
+        owner_count = OrgMembership.objects.filter(organization=org, org_role=OrgMembership.OrgRole.OWNER).count()
         if owner_count <= 1:
             raise ValueError("Cannot change the role of the last organization owner.")
 
@@ -219,10 +212,7 @@ def update_workspace_assignments(org, user, assignments):
     """
     import uuid as uuid_mod
 
-    org_workspace_ids = set(
-        Workspace.objects.filter(organization=org, is_archived=False)
-        .values_list("id", flat=True)
-    )
+    org_workspace_ids = set(Workspace.objects.filter(organization=org, is_archived=False).values_list("id", flat=True))
 
     desired = {}
     for a in assignments:

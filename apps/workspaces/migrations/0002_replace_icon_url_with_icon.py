@@ -4,19 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('workspaces', '0001_initial'),
+        ("workspaces", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='workspace',
-            name='icon_url',
+            model_name="workspace",
+            name="icon_url",
         ),
         migrations.AddField(
-            model_name='workspace',
-            name='icon',
-            field=models.ImageField(blank=True, upload_to='workspaces/icons/%Y/%m/'),
+            model_name="workspace",
+            name="icon",
+            field=models.ImageField(blank=True, upload_to="workspaces/icons/%Y/%m/"),
         ),
     ]

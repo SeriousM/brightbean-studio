@@ -20,12 +20,12 @@ CATEGORIES = [
 
 # Six rotating accent colors (rgb strings)
 COLORS = [
-    "255, 203, 49",   # yellow
-    "218, 255, 53",   # lime
-    "99, 117, 255",   # indigo
+    "255, 203, 49",  # yellow
+    "218, 255, 53",  # lime
+    "99, 117, 255",  # indigo
     "248, 149, 151",  # pink
-    "87, 152, 255",   # blue
-    "59, 252, 255",   # cyan
+    "87, 152, 255",  # blue
+    "59, 252, 255",  # cyan
 ]
 
 FEATURED_IDS = [20, 44, 3]

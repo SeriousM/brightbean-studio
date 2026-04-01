@@ -315,9 +315,7 @@ class TikTokProvider(SocialProvider):
                     break
 
                 for comment in comments:
-                    created = datetime.fromtimestamp(
-                        comment.get("create_time", 0), tz=UTC
-                    )
+                    created = datetime.fromtimestamp(comment.get("create_time", 0), tz=UTC)
                     if since and created < since:
                         continue
 

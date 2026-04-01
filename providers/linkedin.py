@@ -485,11 +485,7 @@ class LinkedInProvider(SocialProvider):
 
                     # Use actor~ expansion if available, otherwise fall back to URN
                     actor_info = comment.get("actor~", {})
-                    sender_name = (
-                        actor_info.get("name")
-                        or actor_info.get("localizedFirstName", "")
-                        or actor_urn
-                    )
+                    sender_name = actor_info.get("name") or actor_info.get("localizedFirstName", "") or actor_urn
 
                     messages.append(
                         InboxMessage(

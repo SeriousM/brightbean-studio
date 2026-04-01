@@ -16,9 +16,7 @@ def populate_groups(apps, schema_editor):
     IdeaGroup = apps.get_model("composer", "IdeaGroup")
     Idea = apps.get_model("composer", "Idea")
 
-    workspace_ids = (
-        Idea.objects.values_list("workspace_id", flat=True).distinct()
-    )
+    workspace_ids = Idea.objects.values_list("workspace_id", flat=True).distinct()
 
     for ws_id in workspace_ids:
         status_to_group = {}
@@ -41,7 +39,6 @@ def reverse_groups(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("composer", "0005_add_idea_group"),
     ]

@@ -156,8 +156,12 @@ def _get_publish_context(workspace, request):
         "workspace_timezone": ws_tz,
         "queue_count": Post.objects.for_workspace(workspace.id).filter(status="scheduled").count(),
         "drafts_count": Post.objects.for_workspace(workspace.id).filter(status="draft").count(),
-        "approvals_count": Post.objects.for_workspace(workspace.id).filter(status__in=["pending_review", "pending_client"]).count(),
-        "sent_count": Post.objects.for_workspace(workspace.id).filter(status__in=["published", "partially_published"]).count(),
+        "approvals_count": Post.objects.for_workspace(workspace.id)
+        .filter(status__in=["pending_review", "pending_client"])
+        .count(),
+        "sent_count": Post.objects.for_workspace(workspace.id)
+        .filter(status__in=["published", "partially_published"])
+        .count(),
     }
 
 
@@ -179,7 +183,8 @@ def calendar_view(request, workspace_id):
     """Main publish page — renders calendar or list mode."""
     workspace = _get_workspace(request, workspace_id)
     has_connected_accounts = SocialAccount.objects.filter(
-        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        workspace=workspace,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
     default_mode = "calendar" if has_connected_accounts else "list"
     mode = request.GET.get("mode", default_mode)
@@ -466,7 +471,8 @@ def _list_view(request, workspace, target_date, context):
     posts = _get_filtered_posts(workspace, request).order_by("-scheduled_at", "-created_at")[:200]
 
     has_connected_accounts = SocialAccount.objects.filter(
-        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        workspace=workspace,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
 
     context.update(
@@ -504,7 +510,8 @@ def publish_tab_queue(request, workspace_id):
     posts = _apply_publish_filters(posts, request)
 
     has_connected_accounts = SocialAccount.objects.filter(
-        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        workspace=workspace,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
 
     return render(
@@ -535,7 +542,8 @@ def publish_tab_drafts(request, workspace_id):
     posts = _apply_publish_filters(posts, request)
 
     has_connected_accounts = SocialAccount.objects.filter(
-        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        workspace=workspace,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
 
     return render(
@@ -584,12 +592,8 @@ def publish_tab_approvals(request, workspace_id):
             "posts": posts,
             "status_filter": status_filter,
             "can_approve": can_approve,
-            "pending_review_count": Post.objects.for_workspace(workspace.id)
-            .filter(status="pending_review")
-            .count(),
-            "pending_client_count": Post.objects.for_workspace(workspace.id)
-            .filter(status="pending_client")
-            .count(),
+            "pending_review_count": Post.objects.for_workspace(workspace.id).filter(status="pending_review").count(),
+            "pending_client_count": Post.objects.for_workspace(workspace.id).filter(status="pending_client").count(),
             "display_timezone": display_tz,
         },
     )
@@ -611,7 +615,8 @@ def publish_tab_sent(request, workspace_id):
     posts = _apply_publish_filters(posts, request)
 
     has_connected_accounts = SocialAccount.objects.filter(
-        workspace=workspace, connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        workspace=workspace,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
 
     return render(
@@ -820,11 +825,15 @@ def update_posting_slot(request, workspace_id, slot_id):
         return JsonResponse({"error": "Invalid time format."}, status=400)
 
     # Check for duplicate
-    if PostingSlot.objects.filter(
-        social_account=slot.social_account,
-        day_of_week=slot.day_of_week,
-        time=new_time,
-    ).exclude(id=slot.id).exists():
+    if (
+        PostingSlot.objects.filter(
+            social_account=slot.social_account,
+            day_of_week=slot.day_of_week,
+            time=new_time,
+        )
+        .exclude(id=slot.id)
+        .exists()
+    ):
         return JsonResponse({"error": "A slot at that time already exists."}, status=409)
 
     slot.time = new_time

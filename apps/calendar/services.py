@@ -12,7 +12,7 @@ DEFAULT_POSTING_SLOTS = {
     0: [time(9, 24), time(10, 10), time(11, 26), time(12, 42)],  # Monday
     1: [time(9, 55), time(10, 41), time(11, 57), time(12, 13)],  # Tuesday
     2: [time(9, 30), time(10, 17), time(11, 32), time(12, 41)],  # Wednesday
-    3: [time(9, 38), time(10, 52)],                                # Thursday
+    3: [time(9, 38), time(10, 52)],  # Thursday
 }
 
 
@@ -33,9 +33,7 @@ def create_default_queue_and_slots(social_account):
     slots = []
     for day, times in DEFAULT_POSTING_SLOTS.items():
         for t in times:
-            slots.append(
-                PostingSlot(social_account=social_account, day_of_week=day, time=t)
-            )
+            slots.append(PostingSlot(social_account=social_account, day_of_week=day, time=t))
     PostingSlot.objects.bulk_create(slots, ignore_conflicts=True)
 
     return queue

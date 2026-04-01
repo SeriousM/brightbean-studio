@@ -85,10 +85,7 @@ def create_organization_on_signup(sender, request, user, **kwargs):
                     membership.delete()
                     # Only delete the org if it's the auto-provisioned one
                     # and has no other members.
-                    if (
-                        org.name == "My Organization"
-                        and not org.memberships.exists()
-                    ):
+                    if org.name == "My Organization" and not org.memberships.exists():
                         Workspace.objects.filter(organization=org).delete()
                         org.delete()
 

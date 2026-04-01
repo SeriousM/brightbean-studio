@@ -62,9 +62,7 @@ class Command(BaseCommand):
                 for msg in messages:
                     engine._upsert_message(account, msg)
                     count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f"  {account.platform}/{account.account_name}: {count} messages")
-                )
+                self.stdout.write(self.style.SUCCESS(f"  {account.platform}/{account.account_name}: {count} messages"))
             except NotImplementedError:
                 self.stdout.write(f"  {account.platform}/{account.account_name}: skipped (not supported)")
             except Exception as e:

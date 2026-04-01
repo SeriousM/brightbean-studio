@@ -61,16 +61,16 @@ def account_settings(request):
     # Fetch the user's organization membership for role display
     from apps.members.models import OrgMembership
 
-    org_membership = (
-        OrgMembership.objects.filter(user=user)
-        .select_related("organization")
-        .first()
-    )
+    org_membership = OrgMembership.objects.filter(user=user).select_related("organization").first()
 
-    return render(request, "accounts/settings.html", {
-        "settings_active": settings_active,
-        "org_membership": org_membership,
-    })
+    return render(
+        request,
+        "accounts/settings.html",
+        {
+            "settings_active": settings_active,
+            "org_membership": org_membership,
+        },
+    )
 
 
 def _handle_photo_update(request, user):
@@ -184,16 +184,20 @@ def _handle_account_deletion(request, user):
     from apps.members.models import OrgMembership
 
     # Check if user is the sole owner of any organization
-    owned_memberships = OrgMembership.objects.filter(
-        user=user, org_role=OrgMembership.OrgRole.OWNER
-    ).select_related("organization")
+    owned_memberships = OrgMembership.objects.filter(user=user, org_role=OrgMembership.OrgRole.OWNER).select_related(
+        "organization"
+    )
 
     sole_owner_orgs = []
     for membership in owned_memberships:
-        other_owners = OrgMembership.objects.filter(
-            organization=membership.organization,
-            org_role=OrgMembership.OrgRole.OWNER,
-        ).exclude(user=user).exists()
+        other_owners = (
+            OrgMembership.objects.filter(
+                organization=membership.organization,
+                org_role=OrgMembership.OrgRole.OWNER,
+            )
+            .exclude(user=user)
+            .exists()
+        )
         if not other_owners:
             sole_owner_orgs.append(membership.organization.name)
 
