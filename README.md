@@ -395,6 +395,24 @@ Facebook, Instagram, and Threads all use the same Meta app credentials.
    PLATFORM_FACEBOOK_APP_SECRET=your-app-secret
    ```
 
+### Instagram (Personal Account)
+
+The Instagram (Personal) connector uses the **Instagram API with Instagram Login** — a separate OAuth flow from the Facebook Login-based Instagram connector above. This supports personal, creator, and business Instagram accounts without requiring a linked Facebook Page.
+
+1. In the same Meta app, go to **Use cases** and add the **"Instagram API"** use case
+2. Under **API setup with Instagram Login**, note your **Instagram App ID** and **Instagram App Secret** (these are different from your Facebook App ID/Secret)
+3. Go to **Permissions and features** and add the required permissions:
+   - `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_comments`, `instagram_business_manage_messages`
+4. Under **API setup with Instagram Login → Step 4: Set up Instagram business login**, click **Set up** and add the redirect URI:
+   ```
+   {APP_URL}/social-accounts/callback/instagram_personal/
+   ```
+5. Set the environment variables:
+   ```
+   PLATFORM_INSTAGRAM_APP_ID=your-instagram-app-id
+   PLATFORM_INSTAGRAM_APP_SECRET=your-instagram-app-secret
+   ```
+
 ### LinkedIn
 
 Brightbean uses a **single LinkedIn app** (with Community Management API) for both personal profile and Company Page connections — each flow simply requests different OAuth scopes. The connect page shows two cards: *LinkedIn (Personal Profile)* and *LinkedIn (Company Page)*.

@@ -204,8 +204,11 @@ class SocialProvider(ABC):
 
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
+            logger.error(
+                "%s API 429 response: %s", self.platform_name, response.text[:1000]
+            )
             raise RateLimitError(
-                f"Rate limit exceeded for {self.platform_name}",
+                f"Rate limit exceeded for {self.platform_name}: {response.text[:500]}",
                 retry_after=int(retry_after) if retry_after else None,
                 platform=self.platform_name,
                 raw_response=self._safe_json(response),

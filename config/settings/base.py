@@ -302,6 +302,10 @@ _GOOGLE_CREDENTIALS = {
     "client_id": env("PLATFORM_GOOGLE_CLIENT_ID", default=""),
     "client_secret": env("PLATFORM_GOOGLE_CLIENT_SECRET", default=""),
 }
+_INSTAGRAM_PERSONAL_CREDENTIALS = {
+    "app_id": env("PLATFORM_INSTAGRAM_APP_ID", default=""),
+    "app_secret": env("PLATFORM_INSTAGRAM_APP_SECRET", default=""),
+}
 _LINKEDIN_CREDENTIALS = {
     "client_id": env("PLATFORM_LINKEDIN_CLIENT_ID", default=""),
     "client_secret": env("PLATFORM_LINKEDIN_CLIENT_SECRET", default=""),
@@ -312,6 +316,8 @@ PLATFORM_CREDENTIALS_FROM_ENV = {
     "facebook": _META_CREDENTIALS,
     "instagram": _META_CREDENTIALS,
     "threads": _META_CREDENTIALS,
+    # Instagram (Personal) — uses Instagram Login with separate Instagram App credentials
+    "instagram_personal": _INSTAGRAM_PERSONAL_CREDENTIALS,
     # LinkedIn — personal and company page variants share one Community Management API app
     "linkedin_personal": _LINKEDIN_CREDENTIALS,
     "linkedin_company": _LINKEDIN_CREDENTIALS,
