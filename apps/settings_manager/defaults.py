@@ -25,7 +25,7 @@ APP_DEFAULTS = {
     "approval.max_reminders_per_post": 2,
     "approval.stalled_post_escalation": True,
     "approval.email_subject_template": "{workspace_name} - Posts ready for your review",
-    "publishing.first_comment_delay_seconds": 5,
+    "publishing.first_comment_delay_seconds": 120,
     "publishing.retry_max_attempts": 3,
     "publishing.retry_backoff_schedule": "1min,5min,30min",
     "scheduling.recurring_post_lookahead_days": 90,

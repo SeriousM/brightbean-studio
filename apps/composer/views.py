@@ -92,6 +92,17 @@ def _sync_platform_posts(request, post, workspace):
                 "thumbnail_asset_id": thumb_id,
             }
 
+        elif account.platform == "pinterest":
+            pp.platform_extra = {
+                "board_id": request.POST.get(f"pin_board_id_{acc_id}", "").strip() or None,
+                "link_url": request.POST.get(f"pin_link_url_{acc_id}", "").strip() or None,
+                "alt_text": request.POST.get(f"pin_alt_text_{acc_id}", "").strip() or None,
+                "tag_products": request.POST.get(f"pin_tag_products_{acc_id}", "").strip() or None,
+                "allow_comments": request.POST.get(f"pin_allow_comments_{acc_id}") == "true",
+                "show_similar_products": request.POST.get(f"pin_show_similar_{acc_id}") == "true",
+                "cover_image_asset_id": request.POST.get(f"pin_cover_image_asset_id_{acc_id}", "").strip() or None,
+            }
+
         pp.save()
 
 
@@ -348,25 +359,34 @@ def compose(request, workspace_id, post_id=None):
                 }
             )
 
-    # Resolve thumbnail URLs for any per-account YouTube thumbnails already saved
+    # Resolve thumbnail/cover image URLs for per-account assets already saved
     thumb_ids = [
         extra.get("thumbnail_asset_id")
         for extra in platform_extras.values()
         if extra.get("thumbnail_asset_id")
     ]
-    thumb_url_map = {}
-    if thumb_ids:
-        for asset in MediaAsset.objects.filter(id__in=thumb_ids, workspace=workspace):
+    cover_ids = [
+        extra.get("cover_image_asset_id")
+        for extra in platform_extras.values()
+        if extra.get("cover_image_asset_id")
+    ]
+    all_asset_ids = [aid for aid in thumb_ids + cover_ids if aid]
+    asset_url_map = {}
+    if all_asset_ids:
+        for asset in MediaAsset.objects.filter(id__in=all_asset_ids, workspace=workspace):
             url = ""
             if asset.thumbnail:
                 url = asset.thumbnail.url
             elif asset.file:
                 url = asset.file.url
-            thumb_url_map[str(asset.id)] = url
+            asset_url_map[str(asset.id)] = url
     for acc_id, extra in platform_extras.items():
         tid = extra.get("thumbnail_asset_id")
-        if tid and tid in thumb_url_map:
-            extra["thumbnail_url"] = thumb_url_map[tid]
+        if tid and tid in asset_url_map:
+            extra["thumbnail_url"] = asset_url_map[tid]
+        cid = extra.get("cover_image_asset_id")
+        if cid and cid in asset_url_map:
+            extra["cover_image_url"] = asset_url_map[cid]
 
     context = {
         "workspace": workspace,
@@ -377,6 +397,7 @@ def compose(request, workspace_id, post_id=None):
         "platform_extras_json": json.dumps(platform_extras),
         "media_attachments": media_attachments,
         "media_items": media_items,
+        "media_items_json": json.dumps(media_items),
         "char_limits_json": json.dumps(char_limits),
         "default_first_comment": default_first_comment,
         "default_hashtags": json.dumps(default_hashtags),
@@ -960,6 +981,64 @@ def thumbnail_upload(request, workspace_id):
             "filename": asset.filename,
         }
     )
+
+
+@login_required
+@require_GET
+def pinterest_boards(request, workspace_id, account_id):
+    """Fetch Pinterest boards for board selection in the composer."""
+    workspace = _get_workspace(request, workspace_id)
+    account = get_object_or_404(
+        SocialAccount, id=account_id, workspace=workspace, platform="pinterest"
+    )
+
+    from apps.credentials.models import PlatformCredential
+    from providers import get_provider
+
+    try:
+        cred = PlatformCredential.objects.for_org(
+            workspace.organization_id
+        ).get(platform="pinterest", is_configured=True)
+        credentials = cred.credentials
+    except PlatformCredential.DoesNotExist:
+        from django.conf import settings as django_settings
+        env_creds = getattr(django_settings, "PLATFORM_CREDENTIALS_FROM_ENV", {})
+        credentials = env_creds.get("pinterest", {})
+
+    provider = get_provider("pinterest", credentials)
+
+    # Refresh token if expiring
+    access_token = account.oauth_access_token
+    if account.token_expires_at and account.is_token_expiring_soon:
+        try:
+            new_tokens = provider.refresh_token(account.oauth_refresh_token)
+            account.oauth_access_token = new_tokens.access_token
+            if new_tokens.refresh_token:
+                account.oauth_refresh_token = new_tokens.refresh_token
+            if new_tokens.expires_in:
+                from datetime import timedelta
+                account.token_expires_at = timezone.now() + timedelta(
+                    seconds=new_tokens.expires_in
+                )
+            account.connection_status = account.ConnectionStatus.CONNECTED
+            account.save(
+                update_fields=[
+                    "oauth_access_token", "oauth_refresh_token",
+                    "token_expires_at", "connection_status", "updated_at",
+                ]
+            )
+            access_token = new_tokens.access_token
+        except Exception:
+            return JsonResponse({"error": "Token refresh failed"}, status=502)
+
+    try:
+        boards = provider.get_boards(access_token)
+    except Exception:
+        return JsonResponse({"error": "Failed to fetch boards"}, status=502)
+
+    return JsonResponse({
+        "boards": [{"id": b.get("id"), "name": b.get("name")} for b in boards]
+    })
 
 
 @login_required

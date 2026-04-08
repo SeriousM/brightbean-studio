@@ -115,6 +115,7 @@ class SocialAccount(models.Model):
             "title_max_length": 100,
             "title_label": "Pin Title",
             "caption_label": "Description",
+            "advanced_fields": ["allow_comments", "show_similar_products", "alt_text", "cover_image"],
         },
     }
 

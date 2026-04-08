@@ -5,7 +5,7 @@ This module implements the core publish loop:
 2. Transition to 'publishing'.
 3. Dispatch platform posts in parallel.
 4. Handle retries with exponential backoff.
-5. Post first comment after 5-second delay.
+5. Post first comment after 2-minute delay.
 6. Update statuses and log results.
 """
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Retry backoff schedule (in seconds)
 RETRY_BACKOFF = [60, 300, 1800]  # 1min, 5min, 30min
 MAX_RETRIES = 3
-FIRST_COMMENT_DELAY = getattr(settings, "PUBLISHER_FIRST_COMMENT_DELAY", 5)
+FIRST_COMMENT_DELAY = getattr(settings, "PUBLISHER_FIRST_COMMENT_DELAY", 120)
 MAX_CONCURRENT_PUBLISHES = getattr(settings, "PUBLISHER_MAX_CONCURRENT_PUBLISHES", 10)
 MAX_CONCURRENT_POSTS = getattr(settings, "PUBLISHER_MAX_CONCURRENT_POSTS", 4)
 
@@ -300,6 +300,9 @@ class PublishEngine:
             platform_extra = platform_post.platform_extra or {}
             extra.update(platform_extra)
 
+            # Pop link_url from extra and set on PublishContent directly
+            link_url = extra.pop("link_url", None)
+
             # Resolve thumbnail_asset_id → temp file path for providers that
             # need to upload a custom thumbnail (YouTube).
             thumb_asset_id = extra.pop("thumbnail_asset_id", None)
@@ -319,6 +322,23 @@ class PublishEngine:
                 except MediaAsset.DoesNotExist:
                     logger.warning("Thumbnail asset %s not found", thumb_asset_id)
 
+            # Resolve cover_image_asset_id → temp file (Pinterest video pins)
+            cover_asset_id = extra.pop("cover_image_asset_id", None)
+            if cover_asset_id:
+                try:
+                    cover_asset = MediaAsset.objects.get(id=cover_asset_id)
+                    if cover_asset.file:
+                        suffix = os.path.splitext(cover_asset.filename)[1] or ".jpg"
+                        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+                        temp_files.append(tmp.name)
+                        with cover_asset.file.open("rb") as src:
+                            for chunk in iter(lambda: src.read(8192), b""):
+                                tmp.write(chunk)
+                        tmp.close()
+                        extra["cover_image_file"] = tmp.name
+                except MediaAsset.DoesNotExist:
+                    logger.warning("Cover image asset %s not found", cover_asset_id)
+
             content = PublishContent(
                 text=platform_post.effective_caption or "",
                 title=platform_post.effective_title,
@@ -327,6 +347,7 @@ class PublishEngine:
                 media_files=media_files,
                 post_type=post_type,
                 extra=extra,
+                link_url=link_url,
             )
 
             logger.info(

@@ -449,120 +449,245 @@
                     </div>
                 </div>
 
-                <!-- Platform-specific overrides -->
-                <template x-for="accId in selectedAccounts" :key="'override-' + accId">
-                    <div class="border border-stone-200 rounded-xl bg-white p-4"
-                         x-show="overrides[accId]" x-transition>
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="platform-icon pi-unknown w-5 h-5 text-[9px] rounded-[5px]"
+                <!-- Pinterest settings (auto-visible when any Pinterest account is selected) -->
+                <template x-for="accId in selectedAccounts" :key="'pin-settings-' + accId">
+                    <div x-show="charLimits[accId]?.platform === 'pinterest'"
+                         x-data="{ boards: [], boardsLoading: false, boardsLoaded: false }"
+                         x-effect="if (charLimits[accId]?.platform === 'pinterest' && !boardsLoaded) {
+                             boardsLoading = true;
+                             fetch(`/workspace/{{ workspace.id }}/compose/pinterest-boards/${accId}/`)
+                                 .then(r => r.json())
+                                 .then(data => { boards = data.boards || []; boardsLoaded = true; })
+                                 .catch(() => {})
+                                 .finally(() => { boardsLoading = false; });
+                         }"
+                         class="border border-stone-200 rounded-xl bg-white p-4 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="platform-icon w-5 h-5 rounded-[5px] flex items-center justify-center"
                                   :class="'pi-' + (charLimits[accId]?.platform || '')"
-                                  x-text="(charLimits[accId]?.platform || '').slice(0,2).toUpperCase()"></span>
-                            <span class="text-xs font-semibold text-stone-600" x-text="charLimits[accId]?.name + ' - Custom Override'"></span>
-                            <button type="button" class="ml-auto text-xs text-stone-400 hover:text-red-500" @click="overrides[accId] = false">Remove override</button>
+                                  x-html="platformIconSvg(charLimits[accId]?.platform || '')"></span>
+                            <span class="text-xs font-semibold text-stone-600" x-text="charLimits[accId]?.name + ' - Pin Settings'"></span>
                         </div>
-                        <!-- Title override (only for platforms that need it) -->
-                        <template x-if="charLimits[accId]?.needs_title">
-                            <div class="mb-3">
-                                <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1"
-                                       x-text="(charLimits[accId]?.title_label || 'Title') + ' Override'"></label>
-                                <input type="text" :name="'override_title_' + accId"
-                                       class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
-                                       :placeholder="'Custom ' + (charLimits[accId]?.title_label || 'title') + '…'"
-                                       :maxlength="charLimits[accId]?.title_max_length || 255">
-                            </div>
-                        </template>
-                        <textarea :name="'override_caption_' + accId"
-                                  class="caption-editor w-full text-sm"
-                                  :placeholder="'Custom ' + (charLimits[accId]?.caption_label || 'caption') + ' for this platform...'"
-                                  rows="3"></textarea>
-
-                        <!-- Advanced accordion (per-platform extras) -->
-                        <template x-if="(charLimits[accId]?.advanced_fields || []).length">
-                            <div class="mt-3 border-t border-stone-100 pt-3">
-                                <button type="button"
-                                        class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex items-center gap-1 cursor-pointer"
-                                        @click="advancedOpen[accId] = !advancedOpen[accId]">
-                                    <svg class="w-3 h-3 transition-transform"
-                                         :class="advancedOpen[accId] ? 'rotate-90' : ''"
-                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                    Advanced
-                                </button>
-                                <div x-show="advancedOpen[accId]" x-transition class="mt-3 space-y-3">
-                                    <!-- YouTube advanced fields -->
-                                    <template x-if="charLimits[accId]?.platform === 'youtube'">
-                                        <div class="space-y-3">
-                                            <!-- Made for Kids -->
-                                            <label class="flex items-start gap-2 cursor-pointer">
-                                                <input type="checkbox"
-                                                       :name="'yt_made_for_kids_' + accId"
-                                                       value="true"
-                                                       :checked="platformExtras[accId]?.self_declared_made_for_kids"
-                                                       class="w-4 h-4 mt-0.5 rounded border-stone-300 text-orange-500 focus:ring-orange-200">
-                                                <span class="text-sm text-stone-700">
-                                                    Made for Kids
-                                                    <span class="block text-[11px] text-stone-400 font-normal">Required by COPPA - mark if this video is directed at children under 13</span>
-                                                </span>
-                                            </label>
-                                            <!-- Visibility -->
-                                            <div>
-                                                <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Visibility</label>
-                                                <select :name="'yt_privacy_status_' + accId"
-                                                        class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
-                                                    <option value="public" :selected="(platformExtras[accId]?.privacy_status || 'public') === 'public'">Public</option>
-                                                    <option value="unlisted" :selected="platformExtras[accId]?.privacy_status === 'unlisted'">Unlisted</option>
-                                                    <option value="private" :selected="platformExtras[accId]?.privacy_status === 'private'">Private</option>
-                                                </select>
-                                            </div>
-                                            <!-- Tags -->
-                                            <div>
-                                                <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Tags</label>
-                                                <input type="text"
-                                                       :name="'yt_tags_' + accId"
-                                                       :value="(platformExtras[accId]?.tags || []).join(', ')"
-                                                       placeholder="vlog, travel, daily"
-                                                       class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
-                                                <p class="text-[11px] text-stone-400 mt-1">Comma-separated</p>
-                                            </div>
-                                            <!-- Thumbnail -->
-                                            <div>
-                                                <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Custom Thumbnail</label>
-                                                <input type="hidden"
-                                                       :name="'yt_thumbnail_asset_id_' + accId"
-                                                       :value="platformExtras[accId]?.thumbnail_asset_id || ''">
-                                                <div class="flex items-center gap-2">
-                                                    <template x-if="platformExtras[accId]?.thumbnail_url">
-                                                        <img :src="platformExtras[accId].thumbnail_url"
-                                                             class="w-20 h-12 object-cover rounded-md border border-stone-200">
-                                                    </template>
-                                                    <button type="button"
-                                                            @click="openThumbnailPicker(accId)"
-                                                            class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all">
-                                                        <span x-text="platformExtras[accId]?.thumbnail_asset_id ? 'Change' : 'Pick from Library'"></span>
-                                                    </button>
-                                                    <button type="button"
-                                                            @click="triggerThumbnailUpload(accId)"
-                                                            :disabled="thumbnailUploading[accId]"
-                                                            class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all disabled:opacity-50">
-                                                        <span x-text="thumbnailUploading[accId] ? 'Uploading…' : 'Upload'"></span>
-                                                    </button>
-                                                    <input type="file"
-                                                           :data-thumb-upload-for="accId"
-                                                           accept="image/jpeg,image/png"
-                                                           class="hidden thumb-upload-input"
-                                                           @change="uploadThumbnail(accId, $event)">
-                                                    <button type="button"
-                                                            x-show="platformExtras[accId]?.thumbnail_asset_id"
-                                                            @click="clearThumbnail(accId)"
-                                                            class="text-xs text-stone-400 hover:text-red-500">Remove</button>
-                                                </div>
-                                            </div>
+                        <!-- Select Board -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+                                Select Board <span class="text-red-400">*</span>
+                            </label>
+                            <select :name="'pin_board_id_' + accId"
+                                    class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                    required>
+                                <option value="">Select a board…</option>
+                                <template x-for="board in boards" :key="board.id">
+                                    <option :value="board.id"
+                                            :selected="platformExtras[accId]?.board_id === board.id"
+                                            x-text="board.name"></option>
+                                </template>
+                            </select>
+                            <p x-show="boardsLoading" class="text-[11px] text-stone-400 mt-1">Loading boards…</p>
+                            <p x-show="boardsLoaded && boards.length === 0" class="text-[11px] text-red-400 mt-1">No boards found. Create a board on Pinterest first.</p>
+                        </div>
+                        <!-- Destination Link -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Destination Link</label>
+                            <input type="url"
+                                   :name="'pin_link_url_' + accId"
+                                   :value="platformExtras[accId]?.link_url || ''"
+                                   placeholder="https://example.com/your-page"
+                                   maxlength="2048"
+                                   class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
+                            <p class="text-[11px] text-stone-400 mt-1">Where people go when they click the pin</p>
+                        </div>
+                        <!-- Tag Products -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Tag Products</label>
+                            <input type="text"
+                                   :name="'pin_tag_products_' + accId"
+                                   :value="platformExtras[accId]?.tag_products || ''"
+                                   placeholder="Product URLs or IDs (comma-separated)"
+                                   class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
+                            <p class="text-[11px] text-stone-400 mt-1">Requires a connected product catalog</p>
+                        </div>
+                        <!-- Advanced -->
+                        <div class="border-t border-stone-100 pt-3">
+                            <button type="button"
+                                    class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex items-center gap-1 cursor-pointer"
+                                    @click="advancedOpen[accId] = !advancedOpen[accId]">
+                                <svg class="w-3 h-3 transition-transform"
+                                     :class="advancedOpen[accId] ? 'rotate-90' : ''"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                Advanced
+                            </button>
+                            <div x-show="advancedOpen[accId]" x-transition class="mt-3 space-y-3">
+                                <!-- Allow Comments -->
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="checkbox"
+                                           :name="'pin_allow_comments_' + accId"
+                                           value="true"
+                                           :checked="platformExtras[accId]?.allow_comments !== false"
+                                           class="w-4 h-4 mt-0.5 rounded border-stone-300 text-orange-500 focus:ring-orange-200">
+                                    <span class="text-sm text-stone-700">Allow people to comment</span>
+                                </label>
+                                <!-- Show Similar Products -->
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="checkbox"
+                                           :name="'pin_show_similar_' + accId"
+                                           value="true"
+                                           :checked="platformExtras[accId]?.show_similar_products !== false"
+                                           class="w-4 h-4 mt-0.5 rounded border-stone-300 text-orange-500 focus:ring-orange-200">
+                                    <span class="text-sm text-stone-700">Show similar products</span>
+                                </label>
+                                <!-- Alt Text -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Alt Text</label>
+                                    <textarea :name="'pin_alt_text_' + accId"
+                                              placeholder="Describe this pin for accessibility…"
+                                              maxlength="500"
+                                              rows="2"
+                                              class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
+                                              x-init="$el.value = platformExtras[accId]?.alt_text || ''"></textarea>
+                                </div>
+                                <!-- Video Cover Image (only when video media is attached) -->
+                                <template x-if="mediaItems && mediaItems.some(m => m.is_video)">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Video Cover Image</label>
+                                        <input type="hidden"
+                                               :name="'pin_cover_image_asset_id_' + accId"
+                                               :value="platformExtras[accId]?.cover_image_asset_id || ''">
+                                        <div class="flex items-center gap-2">
+                                            <template x-if="platformExtras[accId]?.cover_image_url">
+                                                <img :src="platformExtras[accId].cover_image_url"
+                                                     class="w-20 h-12 object-cover rounded-md border border-stone-200">
+                                            </template>
+                                            <button type="button"
+                                                    @click="openThumbnailPicker(accId)"
+                                                    class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all cursor-pointer">
+                                                <span x-text="platformExtras[accId]?.cover_image_asset_id ? 'Change' : 'Pick from Library'"></span>
+                                            </button>
+                                            <button type="button"
+                                                    @click="triggerThumbnailUpload(accId)"
+                                                    :disabled="thumbnailUploading[accId]"
+                                                    class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all disabled:opacity-50 cursor-pointer">
+                                                <span x-text="thumbnailUploading[accId] ? 'Uploading…' : 'Upload'"></span>
+                                            </button>
+                                            <input type="file"
+                                                   :data-thumb-upload-for="accId"
+                                                   accept="image/jpeg,image/png"
+                                                   class="hidden thumb-upload-input"
+                                                   @change="uploadThumbnail(accId, $event)">
+                                            <button type="button"
+                                                    x-show="platformExtras[accId]?.cover_image_asset_id"
+                                                    @click="clearThumbnail(accId)"
+                                                    class="text-xs text-stone-400 hover:text-red-500 cursor-pointer">Remove</button>
                                         </div>
-                                    </template>
+                                        <p class="text-[11px] text-stone-400 mt-1">Required for video pins. PNG or JPG, same dimensions as video.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- YouTube settings (auto-visible when any YouTube account is selected) -->
+                <template x-for="accId in selectedAccounts" :key="'yt-settings-' + accId">
+                    <div x-show="charLimits[accId]?.platform === 'youtube'"
+                         class="border border-stone-200 rounded-xl bg-white p-4 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="platform-icon w-5 h-5 rounded-[5px] flex items-center justify-center"
+                                  :class="'pi-' + (charLimits[accId]?.platform || '')"
+                                  x-html="platformIconSvg(charLimits[accId]?.platform || '')"></span>
+                            <span class="text-xs font-semibold text-stone-600" x-text="charLimits[accId]?.name + ' - Video Settings'"></span>
+                        </div>
+                        <!-- Thumbnail -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">Custom Thumbnail</label>
+                            <input type="hidden"
+                                   :name="'yt_thumbnail_asset_id_' + accId"
+                                   :value="platformExtras[accId]?.thumbnail_asset_id || ''">
+                            <template x-if="platformExtras[accId]?.thumbnail_url">
+                                <div class="mb-2">
+                                    <img :src="platformExtras[accId].thumbnail_url"
+                                         class="w-full max-w-[240px] aspect-video object-cover rounded-lg border border-stone-200">
+                                </div>
+                            </template>
+                            <template x-if="!platformExtras[accId]?.thumbnail_url">
+                                <div class="mb-2 w-full max-w-[240px] aspect-video rounded-lg border-2 border-dashed border-stone-200 bg-stone-50 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                                     @click="triggerThumbnailUpload(accId)">
+                                    <svg class="w-6 h-6 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span class="text-[11px] text-stone-400">Click to upload thumbnail</span>
+                                </div>
+                            </template>
+                            <div class="flex items-center gap-2">
+                                <button type="button"
+                                        @click="openThumbnailPicker(accId)"
+                                        class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all cursor-pointer">
+                                    <span x-text="platformExtras[accId]?.thumbnail_asset_id ? 'Change' : 'Pick from Library'"></span>
+                                </button>
+                                <button type="button"
+                                        @click="triggerThumbnailUpload(accId)"
+                                        :disabled="thumbnailUploading[accId]"
+                                        class="text-xs font-medium px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 hover:border-orange-400 hover:text-orange-600 transition-all disabled:opacity-50 cursor-pointer">
+                                    <span x-text="thumbnailUploading[accId] ? 'Uploading…' : 'Upload'"></span>
+                                </button>
+                                <input type="file"
+                                       :data-thumb-upload-for="accId"
+                                       accept="image/jpeg,image/png"
+                                       class="hidden thumb-upload-input"
+                                       @change="uploadThumbnail(accId, $event)">
+                                <button type="button"
+                                        x-show="platformExtras[accId]?.thumbnail_asset_id"
+                                        @click="clearThumbnail(accId)"
+                                        class="text-xs text-stone-400 hover:text-red-500 cursor-pointer">Remove</button>
+                            </div>
+                        </div>
+                        <!-- Visibility -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Visibility</label>
+                            <select :name="'yt_privacy_status_' + accId"
+                                    class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
+                                <option value="public" :selected="(platformExtras[accId]?.privacy_status || 'public') === 'public'">Public</option>
+                                <option value="unlisted" :selected="platformExtras[accId]?.privacy_status === 'unlisted'">Unlisted</option>
+                                <option value="private" :selected="platformExtras[accId]?.privacy_status === 'private'">Private</option>
+                            </select>
+                        </div>
+                        <!-- Advanced -->
+                        <div class="border-t border-stone-100 pt-3">
+                            <button type="button"
+                                    class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex items-center gap-1 cursor-pointer"
+                                    @click="advancedOpen[accId] = !advancedOpen[accId]">
+                                <svg class="w-3 h-3 transition-transform"
+                                     :class="advancedOpen[accId] ? 'rotate-90' : ''"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                Advanced
+                            </button>
+                            <div x-show="advancedOpen[accId]" x-transition class="mt-3 space-y-3">
+                                <!-- Made for Kids -->
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="checkbox"
+                                           :name="'yt_made_for_kids_' + accId"
+                                           value="true"
+                                           :checked="platformExtras[accId]?.self_declared_made_for_kids"
+                                           class="w-4 h-4 mt-0.5 rounded border-stone-300 text-orange-500 focus:ring-orange-200">
+                                    <span class="text-sm text-stone-700">
+                                        Made for Kids
+                                        <span class="block text-[11px] text-stone-400 font-normal">Required by COPPA - mark if this video is directed at children under 13</span>
+                                    </span>
+                                </label>
+                                <!-- Tags -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Tags</label>
+                                    <input type="text"
+                                           :name="'yt_tags_' + accId"
+                                           :value="(platformExtras[accId]?.tags || []).join(', ')"
+                                           placeholder="vlog, travel, daily"
+                                           class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all">
+                                    <p class="text-[11px] text-stone-400 mt-1">Comma-separated</p>
                                 </div>
                             </div>
-                        </template>
+                        </div>
                     </div>
                 </template>
 
@@ -579,6 +704,37 @@
                         </button>
                     </template>
                 </div>
+
+                <!-- Platform-specific overrides -->
+                <template x-for="accId in selectedAccounts" :key="'override-' + accId">
+                    <div class="border border-stone-200 rounded-xl bg-white p-4"
+                         x-show="overrides[accId]" x-transition>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="platform-icon w-5 h-5 rounded-[5px] flex items-center justify-center"
+                                  :class="'pi-' + (charLimits[accId]?.platform || '')"
+                                  x-html="platformIconSvg(charLimits[accId]?.platform || '')"></span>
+                            <span class="text-xs font-semibold text-stone-600" x-text="charLimits[accId]?.name + ' - Custom Override'"></span>
+                            <button type="button" class="ml-auto text-xs text-red-400 hover:text-red-500 cursor-pointer" @click="overrides[accId] = false">Remove override</button>
+                        </div>
+                        <!-- Title override (only for platforms that need it) -->
+                        <template x-if="charLimits[accId]?.needs_title">
+                            <div class="mb-3">
+                                <label class="block text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1"
+                                       x-text="(charLimits[accId]?.title_label || 'Title') + ' Override'"></label>
+                                <input type="text" :name="'override_title_' + accId"
+                                       class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                       :placeholder="'Custom ' + (charLimits[accId]?.title_label || 'title') + '…'"
+                                       :maxlength="charLimits[accId]?.title_max_length || 255">
+                            </div>
+                        </template>
+                        <textarea :name="'override_caption_' + accId"
+                                  class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
+                                  style="font-family: system-ui, -apple-system, sans-serif;"
+                                  :placeholder="'Custom ' + (charLimits[accId]?.caption_label || 'caption') + ' for this platform...'"
+                                  rows="3"></textarea>
+
+                    </div>
+                </template>
 
                 <!-- First Comment -->
                 <div>
@@ -651,7 +807,7 @@
                 }" @click.away="tagDropdownOpen = false">
                     <div class="flex items-center gap-2 mb-2">
                         <label class="text-sm font-semibold text-stone-500 uppercase tracking-wider">Tags</label>
-                        <span class="text-[10px] font-semibold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wider">Team only</span>
+                        <span class="text-[10px] font-semibold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wider">Internal team only</span>
                     </div>
                     <input type="hidden" name="tags" :value="tags.join(',')">
 
@@ -754,7 +910,7 @@
                 <div>
                     <div class="flex items-center gap-2 mb-2">
                         <label class="text-sm font-semibold text-stone-500 uppercase tracking-wider">Notes</label>
-                        <span class="text-[10px] font-semibold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wider">Team only</span>
+                        <span class="text-[10px] font-semibold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full uppercase tracking-wider">Internal team only</span>
                     </div>
                     <textarea name="internal_notes"
                               class="w-full text-sm font-normal px-4 py-3 rounded-xl border border-dashed border-stone-200 bg-stone-50/80 text-stone-600 outline-none focus:border-stone-300 transition-all duration-150 resize-none"
@@ -1223,6 +1379,7 @@ function composerApp() {
         lastSaved: null,
         previewTimer: null,
         autosavedPostId: '{{ post.id|default:"" }}',
+        mediaItems: {{ media_items_json|safe }},
 
         // Computed-like getters for title field visibility
         get anyPlatformNeedsTitle() {
@@ -1252,6 +1409,25 @@ function composerApp() {
             if (!this.caption) return '';
             const firstLine = this.caption.split('\n')[0] || '';
             return firstLine.substring(0, 100);
+        },
+
+        platformIconSvg(platform) {
+            const s = 'width="14" height="14"';
+            const icons = {
+                instagram: `<svg ${s} viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`,
+                facebook: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`,
+                linkedin: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+                linkedin_personal: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+                linkedin_company: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+                tiktok: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`,
+                youtube: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+                pinterest: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.174.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/></svg>`,
+                threads: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.506 5.467l-2.73.734c-1.088-3.96-3.71-5.892-7.59-5.913h-.01c-2.837.018-4.97.89-6.34 2.594C4.563 6.612 3.86 8.97 3.84 12c.02 3.03.723 5.39 2.016 7.02 1.37 1.703 3.503 2.576 6.34 2.594h.01c2.435-.015 4.285-.717 5.5-2.084 1.005-1.13 1.597-2.655 1.76-4.53-1.07.55-2.266.86-3.54.92-1.713.08-3.32-.282-4.647-1.05-1.46-.846-2.478-2.143-2.863-3.652-.284-1.11-.237-2.254.134-3.307.527-1.494 1.627-2.628 3.1-3.2 1.263-.49 2.69-.55 4.013-.166 1.222.354 2.26 1.08 3.03 2.104.06-.553.06-1.1.004-1.636l2.63-.347c.145 1.262.08 2.554-.2 3.818-.34 1.53-.97 2.736-1.88 3.578-1.58 1.462-3.72 2.16-6.38 2.078-1.61-.05-3.05-.55-4.16-1.44-1.238-1-2.075-2.416-2.37-4.02l2.64-.505c.37 1.93 1.94 3.25 4.05 3.36 1.73.09 3.24-.36 4.25-1.276.56-.51.97-1.166 1.23-1.96-.5.09-1.02.13-1.55.14-3.91.18-6.93-2.14-7.18-5.62-.18-2.44 1.13-4.77 3.41-6.05 1.44-.81 3.1-1.1 4.73-.84 1.57.25 2.95 1.05 3.93 2.26.28-.47.53-.97.73-1.49l2.47 1.02c-.31.81-.73 1.57-1.24 2.26.18.96.24 1.95.17 2.92-.16 2.28-.93 4.2-2.29 5.72-1.65 1.85-4.03 2.82-7.07 2.84z"/></svg>`,
+                bluesky: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.785 2.627 3.601 3.476 6.153 3.228-4.475.663-8.391 2.69-4.66 9.523 4.47-5.503 6.962-2.527 9.883-8.192 2.921 5.665 4.127 2.383 9.883 8.192 3.731-6.833-.185-8.86-4.66-9.523 2.552.248 5.368-.601 6.153-3.228C23.622 9.418 24 4.458 24 3.768c0-.688-.139-1.86-.902-2.203-.659-.3-1.664-.621-4.3 1.24C16.046 4.747 13.087 8.686 12 10.8z"/></svg>`,
+                google_business: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`,
+                mastodon: `<svg ${s} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 00.023-.043v-1.809a.052.052 0 00-.02-.041.053.053 0 00-.046-.01 20.282 20.282 0 01-4.709.547c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 01-.319-1.433.053.053 0 01.066-.054 19.648 19.648 0 004.607.536c.551 0 1.1-.008 1.652-.029 1.923-.065 3.942-.205 5.84-.652.046-.011.09-.024.135-.036 2.435-.581 4.754-2.398 4.999-6.693.009-.156.032-1.628.032-1.79 0-.547.157-3.89-.018-5.94z"/></svg>`,
+            };
+            return icons[platform] || `<svg ${s} viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>`;
         },
 
         init() {

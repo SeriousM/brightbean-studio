@@ -194,6 +194,10 @@ class PinterestProvider(SocialProvider):
         if content.link_url:
             payload["link"] = content.link_url
 
+        alt_text = content.extra.get("alt_text")
+        if alt_text:
+            payload["alt_text"] = alt_text[:500]
+
         # Determine media source
         is_video = content.extra.get("is_video", False)
 

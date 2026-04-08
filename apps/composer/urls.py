@@ -34,6 +34,7 @@ urlpatterns = [
     path("compose/media-picker/", views.media_picker, name="media_picker"),
     path("compose/thumbnail-picker/", views.thumbnail_picker, name="thumbnail_picker"),
     path("compose/thumbnail-upload/", views.thumbnail_upload, name="thumbnail_upload"),
+    path("compose/pinterest-boards/<uuid:account_id>/", views.pinterest_boards, name="pinterest_boards"),
     path("compose/<uuid:post_id>/media-picker/", views.media_picker, name="media_picker_post"),
     path("compose/<uuid:post_id>/attach-media/", views.attach_media, name="attach_media"),
     path("compose/attach-pending-media/", views.attach_pending_media, name="attach_pending_media"),
