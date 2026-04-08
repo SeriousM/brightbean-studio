@@ -229,14 +229,12 @@ class ThreadsProvider(SocialProvider):
             "text": (content.text or "")[: self.max_caption_length],
         }
 
-        if content.post_type == PostType.IMAGE:
+        if content.post_type == PostType.IMAGE and content.media_urls:
             container_payload["media_type"] = "IMAGE"
-            if content.media_urls:
-                container_payload["image_url"] = content.media_urls[0]
-        elif content.post_type == PostType.VIDEO:
+            container_payload["image_url"] = content.media_urls[0]
+        elif content.post_type == PostType.VIDEO and content.media_urls:
             container_payload["media_type"] = "VIDEO"
-            if content.media_urls:
-                container_payload["video_url"] = content.media_urls[0]
+            container_payload["video_url"] = content.media_urls[0]
         else:
             container_payload["media_type"] = "TEXT"
 

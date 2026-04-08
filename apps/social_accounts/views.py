@@ -3,12 +3,9 @@
 Handles OAuth flows, account listing, connect/reconnect/disconnect actions.
 """
 
-import ipaddress
 import logging
 import secrets
-import socket
 from datetime import timedelta
-from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib import messages
@@ -21,6 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from django_ratelimit.decorators import ratelimit
 
+from apps.common.validators import is_safe_url as _is_safe_url
 from apps.credentials.models import PlatformCredential
 from apps.members.decorators import require_permission
 
@@ -30,26 +28,6 @@ logger = logging.getLogger(__name__)
 
 OAUTH_STATE_MAX_AGE = 600  # 10 minutes
 OAUTH_SESSION_KEY = "social_oauth"
-
-
-def _is_safe_url(url: str) -> bool:
-    """Validate that a URL does not resolve to a private/reserved IP (SSRF protection)."""
-    try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-        if not hostname:
-            return False
-
-        # Resolve hostname to IP addresses
-        addr_infos = socket.getaddrinfo(hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
-        for family, _, _, _, sockaddr in addr_infos:
-            ip = ipaddress.ip_address(sockaddr[0])
-            if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
-                return False
-
-        return True
-    except (socket.gaierror, ValueError, OSError):
-        return False
 
 
 def _get_provider_for_platform(platform: str, org_id, **extra_credentials):

@@ -25,7 +25,7 @@ from django.utils import timezone
 from apps.composer.models import PlatformPost, Post
 from apps.credentials.models import PlatformCredential
 from providers import get_provider
-from providers.types import PostType, PublishContent
+from providers.types import AuthType, PostType, PublishContent
 
 from .models import PublishLog, RateLimitState
 
@@ -227,16 +227,44 @@ class PublishEngine:
             cred = PlatformCredential.objects.for_org(
                 account.workspace.organization_id
             ).get(platform=platform, is_configured=True)
-            credentials = cred.credentials
+            credentials = dict(cred.credentials)
         except PlatformCredential.DoesNotExist:
             env_creds = getattr(settings, "PLATFORM_CREDENTIALS_FROM_ENV", {})
-            credentials = env_creds.get(platform, {})
+            credentials = dict(env_creds.get(platform, {}))
+
+        # Inject per-account instance URL for federated providers
+        if platform == "mastodon" and account.instance_url:
+            from apps.common.validators import is_safe_url
+            if is_safe_url(account.instance_url):
+                credentials["instance_url"] = account.instance_url
+                # Look up per-instance OAuth app registration if no org creds
+                if not credentials.get("client_id"):
+                    from apps.social_accounts.models import MastodonAppRegistration
+                    try:
+                        reg = MastodonAppRegistration.objects.get(
+                            instance_url=account.instance_url
+                        )
+                        credentials["client_id"] = reg.client_id
+                        credentials["client_secret"] = reg.client_secret
+                    except MastodonAppRegistration.DoesNotExist:
+                        pass
+            else:
+                logger.warning(
+                    "Mastodon instance URL failed SSRF check for account %s",
+                    account.id,
+                )
+        elif platform == "bluesky" and account.instance_url:
+            credentials["pds_url"] = account.instance_url
 
         provider = get_provider(platform, credentials)
 
-        # Refresh token if expired or expiring soon
+        # Refresh token if expired or expiring soon (OAuth2 providers only)
         access_token = account.oauth_access_token
-        if account.token_expires_at and account.is_token_expiring_soon:
+        if (
+            account.token_expires_at
+            and account.is_token_expiring_soon
+            and provider.auth_type == AuthType.OAUTH2
+        ):
             try:
                 new_tokens = provider.refresh_token(account.oauth_refresh_token)
                 account.oauth_access_token = new_tokens.access_token
@@ -262,7 +290,10 @@ class PublishEngine:
                 logger.exception("Token refresh failed for %s", account)
 
         # Download media from storage (S3/cloud) to temp files for upload
+        # and collect public URLs (presigned R2 / absolute) for providers
+        # that require fetchable URLs (Instagram, Threads, Google Business, etc.)
         media_files = []
+        media_urls = []
         temp_files = []
         attachments = list(
             platform_post.post.media_attachments.select_related("media_asset")
@@ -274,18 +305,23 @@ class PublishEngine:
         if video_only:
             attachments = [pm for pm in attachments if pm.media_asset.media_type == "video"]
 
-        post_type = PostType.TEXT
+        first_media_type = None
+        app_url = getattr(settings, "APP_URL", "").rstrip("/")
         try:
             for pm in attachments:
                 asset = pm.media_asset
                 if not asset.file:
                     continue
-                # Determine post type from first media asset
-                if not media_files:
-                    if asset.media_type == "video":
-                        post_type = PostType.VIDEO
-                    elif asset.media_type == "image":
-                        post_type = PostType.IMAGE
+                # Track the first media type for post type detection
+                if first_media_type is None:
+                    first_media_type = asset.media_type
+
+                # Collect the public/presigned URL for this asset
+                url = asset.file.url
+                if url.startswith("/"):
+                    # Local storage: make absolute using APP_URL
+                    url = f"{app_url}{url}"
+                media_urls.append(url)
 
                 # Download to a temp file (works with any storage backend)
                 suffix = os.path.splitext(asset.filename)[1] or ".tmp"
@@ -344,21 +380,31 @@ class PublishEngine:
                 except MediaAsset.DoesNotExist:
                     logger.warning("Cover image asset %s not found", cover_asset_id)
 
+            post_type = self._resolve_post_type(
+                platform=platform,
+                platform_extra=platform_extra,
+                media_count=len(media_files),
+                first_media_type=first_media_type,
+            )
+
             content = PublishContent(
                 text=platform_post.effective_caption or "",
                 title=platform_post.effective_title,
                 description=platform_post.effective_caption,
                 first_comment=platform_post.effective_first_comment,
                 media_files=media_files,
+                media_urls=media_urls,
                 post_type=post_type,
                 extra=extra,
                 link_url=link_url,
             )
 
             logger.info(
-                "Publishing to %s (account: %s)",
+                "Publishing to %s (account: %s, type: %s, media: %d)",
                 platform,
                 account.account_name,
+                post_type.value,
+                len(media_files),
             )
             result = provider.publish_post(access_token, content)
             return {
@@ -374,6 +420,46 @@ class PublishEngine:
                     os.unlink(path)
                 except OSError:
                     pass
+
+    @staticmethod
+    def _resolve_post_type(
+        platform: str,
+        platform_extra: dict,
+        media_count: int,
+        first_media_type: str | None,
+    ) -> PostType:
+        """Derive the correct PostType from context.
+
+        Priority:
+        1. Explicit hint in platform_extra (validated against PostType enum)
+        2. Platform defaults (Pinterest → PIN)
+        3. Multi-media on carousel-capable platforms → CAROUSEL
+        4. Fallback: video → VIDEO, image → IMAGE, else → TEXT
+        """
+        # 1. Explicit post_type hint from platform_extra
+        hint = platform_extra.get("post_type")
+        if hint:
+            valid_values = {pt.value for pt in PostType}
+            if hint in valid_values:
+                return PostType(hint)
+            logger.warning("Invalid post_type hint %r, ignoring", hint)
+
+        # 2. Platform defaults
+        if platform == "pinterest":
+            return PostType.PIN
+
+        # 3. Multi-media → CAROUSEL for Instagram/Threads
+        if media_count > 1 and platform in (
+            "instagram", "instagram_personal", "threads",
+        ):
+            return PostType.CAROUSEL
+
+        # 4. Fallback based on first media type
+        if first_media_type == "video":
+            return PostType.VIDEO
+        if first_media_type == "image":
+            return PostType.IMAGE
+        return PostType.TEXT
 
     def _schedule_retry(self, platform_post, error_msg):
         """Schedule a retry with exponential backoff."""

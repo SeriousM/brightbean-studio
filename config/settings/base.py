@@ -172,6 +172,12 @@ if STORAGE_BACKEND == "s3":
     AWS_S3_CUSTOM_DOMAIN = env("S3_CUSTOM_DOMAIN", default="")
     AWS_S3_REGION_NAME = env("S3_REGION_NAME", default="auto")
     AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = "private"
+    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = 3600  # 1-hour expiry for presigned URLs
+    AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": "max-age=86400",
+    }
 else:
     MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))
     MEDIA_URL = "/media/"
@@ -331,6 +337,14 @@ PLATFORM_CREDENTIALS_FROM_ENV = {
     "pinterest": {
         "app_id": env("PLATFORM_PINTEREST_APP_ID", default=""),
         "app_secret": env("PLATFORM_PINTEREST_APP_SECRET", default=""),
+    },
+    # Bluesky - session-based auth (app passwords), no app-level credentials needed
+    "bluesky": {},
+    # Mastodon - instance-specific OAuth; env vars only work for single-instance deployments
+    "mastodon": {
+        "instance_url": env("PLATFORM_MASTODON_INSTANCE_URL", default=""),
+        "client_id": env("PLATFORM_MASTODON_CLIENT_ID", default=""),
+        "client_secret": env("PLATFORM_MASTODON_CLIENT_SECRET", default=""),
     },
 }
 

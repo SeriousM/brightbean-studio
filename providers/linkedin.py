@@ -198,9 +198,9 @@ class LinkedInProvider(SocialProvider):
             profile = self.get_profile(access_token)
             author = f"urn:li:person:{profile.platform_id}"
 
-        if content.post_type == PostType.IMAGE and content.media_urls:
+        if content.post_type == PostType.IMAGE and (content.media_files or content.media_urls):
             return self._publish_image_post(access_token, author, content)
-        if content.post_type == PostType.VIDEO and content.media_urls:
+        if content.post_type == PostType.VIDEO and (content.media_files or content.media_urls):
             return self._publish_video_post(access_token, author, content)
         if content.post_type == PostType.ARTICLE:
             return self._publish_article_post(access_token, author, content)
@@ -272,8 +272,9 @@ class LinkedInProvider(SocialProvider):
                 raw_response=init_data,
             )
 
-        # Step 2: upload image binary
-        image_source = content.media_urls[0]
+        # Step 2: upload image binary (prefer local file to avoid extra network hop)
+        image_source = (content.media_files[0] if content.media_files
+                        else content.media_urls[0])
         self._upload_binary(access_token, upload_url, image_source)
 
         # Step 3: create post with image
@@ -323,8 +324,9 @@ class LinkedInProvider(SocialProvider):
                 raw_response=init_data,
             )
 
-        # Step 2: upload video binary
-        video_source = content.media_urls[0]
+        # Step 2: upload video binary (prefer local file to avoid extra network hop)
+        video_source = (content.media_files[0] if content.media_files
+                        else content.media_urls[0])
         self._upload_binary(access_token, upload_url, video_source)
 
         # Step 3: create post with video
@@ -597,19 +599,22 @@ class LinkedInProvider(SocialProvider):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _upload_binary(self, access_token: str, upload_url: str, source_url: str) -> None:
-        """Download media from source_url and upload to LinkedIn's upload URL.
+    def _upload_binary(self, access_token: str, upload_url: str, source: str) -> None:
+        """Read media from a local file path or URL and upload to LinkedIn.
 
-        Uses httpx directly for streaming upload since the base _request
-        helper does not support streaming binary uploads.
+        Args:
+            source: A local file path or an HTTP(S) URL to download from.
         """
-        with httpx.Client(timeout=120.0) as client:
-            # Download the media
-            download_resp = client.get(source_url)
-            download_resp.raise_for_status()
-            media_bytes = download_resp.content
+        if source.startswith(("http://", "https://")):
+            with httpx.Client(timeout=120.0) as client:
+                download_resp = client.get(source)
+                download_resp.raise_for_status()
+                media_bytes = download_resp.content
+        else:
+            with open(source, "rb") as f:
+                media_bytes = f.read()
 
-            # Upload to LinkedIn
+        with httpx.Client(timeout=120.0) as client:
             upload_resp = client.put(
                 upload_url,
                 content=media_bytes,
@@ -637,6 +642,5 @@ class LinkedInProvider(SocialProvider):
         # Extract the numeric ID from the URN
         parts = urn.split(":")
         if len(parts) >= 4:
-            parts[-1]
             return f"https://www.linkedin.com/feed/update/{urn}/"
         return None
