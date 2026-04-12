@@ -95,6 +95,12 @@ class RBACMiddleware:
 
         request.workspace = ws_membership.workspace
         request.workspace_membership = ws_membership
+
+        # Keep last_workspace_id in sync so global pages show the right workspace
+        if request.user.last_workspace_id != ws_membership.workspace_id:
+            request.user.last_workspace_id = ws_membership.workspace_id
+            request.user.save(update_fields=["last_workspace_id"])
+
         # Also resolve org from workspace for consistency
         org = ws_membership.workspace.organization
         org_membership = (
