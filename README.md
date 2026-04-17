@@ -486,7 +486,7 @@ YouTube and Google Business Profile share the same Google Cloud credentials.
 No developer app registration needed. Users connect by entering their Bluesky handle and an **App Password**:
 
 1. Log in to [Bluesky](https://bsky.app/)
-2. Go to **Settings → App Passwords**
+2. Go to **Settings → Privacy and Security → App Passwords**
 3. Create a new app password and use it when connecting your account in Brightbean
 
 ### Mastodon
