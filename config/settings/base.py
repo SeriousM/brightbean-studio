@@ -253,8 +253,18 @@ CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net")
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_FONT_SRC = ("'self'",)
 CSP_CONNECT_SRC = ("'self'",)
+CSP_MEDIA_SRC = ("'self'",)
 CSP_FORM_ACTION = ("'self'", "https://accounts.google.com")
 CSP_INCLUDE_NONCE_IN = ["script-src"]
+
+# Allow media/images from the storage domain in CSP
+if STORAGE_BACKEND.lower() == "s3":
+    _storage_origin = AWS_S3_CUSTOM_DOMAIN or AWS_S3_ENDPOINT_URL
+    if _storage_origin:
+        if not _storage_origin.startswith("https://"):
+            _storage_origin = f"https://{_storage_origin}"
+        CSP_MEDIA_SRC += (_storage_origin,)
+        CSP_IMG_SRC += (_storage_origin,)
 
 # Media Library
 MEDIA_LIBRARY_MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20MB
