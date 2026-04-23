@@ -12,16 +12,12 @@
             <div class="flex-1">
                 <label for="name" class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Organization Name</label>
                 <input type="text" id="name" name="name" value="{{ organization.name }}" required maxlength="100"
-                       class="w-full px-3 py-2 text-sm rounded-lg outline-none transition-colors"
-                       style="border: 1px solid var(--border); color: var(--text-primary); background: var(--surface-0);"
-                       onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px var(--primary-ring)'"
-                       onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+                       class="input-focus w-full px-3 py-2 text-sm rounded-lg outline-none transition-colors"
+                       style="border: 1px solid var(--border); color: var(--text-primary); background: var(--surface-0);">
             </div>
             <button type="submit"
-                    class="px-5 py-2 text-sm font-medium rounded-full transition-colors cursor-pointer whitespace-nowrap"
-                    style="background: var(--neutral-100); color: var(--text-primary);"
-                    onmouseenter="this.style.background='var(--neutral-200)'"
-                    onmouseleave="this.style.background='var(--neutral-100)'">
+                    class="btn-neutral px-5 py-2 text-sm font-medium rounded-full cursor-pointer whitespace-nowrap"
+                    style="background: var(--neutral-100); color: var(--text-primary);">
                 Save Changes
             </button>
         </div>
@@ -36,10 +32,8 @@
                 <label for="timezone" class="block text-sm font-semibold mb-1" style="color: var(--text-primary);">Default Timezone</label>
                 <p class="text-xs mb-2" style="color: var(--text-tertiary);">Used as the fallback for workspaces that don't set their own.</p>
                 <select id="timezone" name="timezone"
-                        class="w-full px-3 py-2 text-sm rounded-lg outline-none transition-colors"
-                        style="border: 1px solid var(--border); color: var(--text-primary); background: var(--surface-0);"
-                        onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px var(--primary-ring)'"
-                        onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+                        class="input-focus w-full px-3 py-2 text-sm rounded-lg outline-none transition-colors"
+                        style="border: 1px solid var(--border); color: var(--text-primary); background: var(--surface-0);">
                     <optgroup label="Common">
                         {% for tz in common_timezones %}
                         <option value="{{ tz }}" {% if tz == organization.default_timezone %}selected{% endif %}>{{ tz }}</option>
@@ -53,10 +47,8 @@
                 </select>
             </div>
             <button type="submit"
-                    class="px-5 py-2 text-sm font-medium rounded-full transition-colors cursor-pointer whitespace-nowrap"
-                    style="background: var(--neutral-100); color: var(--text-primary);"
-                    onmouseenter="this.style.background='var(--neutral-200)'"
-                    onmouseleave="this.style.background='var(--neutral-100)'">
+                    class="btn-neutral px-5 py-2 text-sm font-medium rounded-full cursor-pointer whitespace-nowrap"
+                    style="background: var(--neutral-100); color: var(--text-primary);">
                 Save Changes
             </button>
         </div>
@@ -84,18 +76,14 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="cancel_deletion">
                     <button type="submit"
-                            class="px-5 py-2 text-sm font-medium rounded-full transition-colors cursor-pointer whitespace-nowrap"
-                            style="background: var(--neutral-100); color: var(--text-primary);"
-                            onmouseenter="this.style.background='var(--neutral-200)'"
-                            onmouseleave="this.style.background='var(--neutral-100)'">
+                            class="btn-neutral px-5 py-2 text-sm font-medium rounded-full cursor-pointer whitespace-nowrap"
+                            style="background: var(--neutral-100); color: var(--text-primary);">
                         Cancel Deletion
                     </button>
                 </form>
                 <button type="button" @click="showImmediateDeleteModal = true"
-                        class="px-5 py-2 text-sm font-medium rounded-full transition-colors cursor-pointer whitespace-nowrap"
-                        style="background: var(--error-500, #EF4444); color: white;"
-                        onmouseenter="this.style.opacity='0.9'"
-                        onmouseleave="this.style.opacity='1'">
+                        class="btn-opacity px-5 py-2 text-sm font-medium rounded-full cursor-pointer whitespace-nowrap"
+                        style="background: var(--error-500, #EF4444); color: white;">
                     Delete Now
                 </button>
             </div>
@@ -141,20 +129,16 @@
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 px-6 py-4" style="border-top: 1px solid var(--border);">
                         <button type="button" @click="showImmediateDeleteModal = false"
-                                class="px-5 py-2 text-sm font-medium rounded-full cursor-pointer transition-colors"
-                                style="background: var(--neutral-100); color: var(--text-primary);"
-                                onmouseenter="this.style.background='var(--neutral-200)'"
-                                onmouseleave="this.style.background='var(--neutral-100)'">
+                                class="btn-neutral px-5 py-2 text-sm font-medium rounded-full cursor-pointer"
+                                style="background: var(--neutral-100); color: var(--text-primary);">
                             Cancel
                         </button>
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete_organization_now">
                             <button type="submit"
-                                    class="px-5 py-2 text-sm font-semibold rounded-full cursor-pointer transition-colors whitespace-nowrap"
-                                    style="background: var(--error-500, #EF4444); color: white;"
-                                    onmouseenter="this.style.opacity='0.9'"
-                                    onmouseleave="this.style.opacity='1'">
+                                    class="btn-opacity px-5 py-2 text-sm font-semibold rounded-full cursor-pointer whitespace-nowrap"
+                                    style="background: var(--error-500, #EF4444); color: white;">
                                 Yes, delete permanently
                             </button>
                         </form>
@@ -175,10 +159,8 @@
             </div>
 
             <button type="button" @click="showDeleteModal = true"
-                    class="px-5 py-2 text-sm font-medium rounded-full transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                    style="background: var(--error-soft, #FEE2E2); color: var(--error-500, #EF4444);"
-                    onmouseenter="this.style.background='var(--error-500, #EF4444)'; this.style.color='white'"
-                    onmouseleave="this.style.background='var(--error-soft, #FEE2E2)'; this.style.color='var(--error-500, #EF4444)'">
+                    class="btn-danger-soft px-5 py-2 text-sm font-medium rounded-full cursor-pointer whitespace-nowrap shrink-0"
+                    style="background: var(--error-soft, #FEE2E2); color: var(--error-500, #EF4444);">
                 Delete Organization
             </button>
         </div>
@@ -223,20 +205,16 @@
                     <!-- Footer -->
                     <div class="flex justify-end gap-3 px-6 py-4" style="border-top: 1px solid var(--border);">
                         <button type="button" @click="showDeleteModal = false"
-                                class="px-5 py-2 text-sm font-medium rounded-full cursor-pointer transition-colors"
-                                style="background: var(--neutral-100); color: var(--text-primary);"
-                                onmouseenter="this.style.background='var(--neutral-200)'"
-                                onmouseleave="this.style.background='var(--neutral-100)'">
+                                class="btn-neutral px-5 py-2 text-sm font-medium rounded-full cursor-pointer"
+                                style="background: var(--neutral-100); color: var(--text-primary);">
                             Cancel
                         </button>
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete_organization">
                             <button type="submit"
-                                    class="px-5 py-2 text-sm font-semibold rounded-full cursor-pointer transition-colors whitespace-nowrap"
-                                    style="background: var(--error-500, #EF4444); color: white;"
-                                    onmouseenter="this.style.opacity='0.9'"
-                                    onmouseleave="this.style.opacity='1'">
+                                    class="btn-opacity px-5 py-2 text-sm font-semibold rounded-full cursor-pointer whitespace-nowrap"
+                                    style="background: var(--error-500, #EF4444); color: white;">
                                 Yes, delete this organization
                             </button>
                         </form>
