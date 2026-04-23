@@ -230,12 +230,26 @@ img.sidebar-logo-mark {
   background: var(--neutral-50) !important;
 }
 
+.btn-neutral-100 {
+  transition: background var(--dur-fast) ease;
+}
+.btn-neutral-100:hover {
+  background: var(--neutral-100) !important;
+}
+
 .btn-danger-soft {
   transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .btn-danger-soft:hover {
   background: var(--error-500, #EF4444) !important;
   color: white !important;
+}
+
+.btn-danger-soft-bg {
+  transition: background var(--dur-fast) ease;
+}
+.btn-danger-soft-bg:hover {
+  background: #FEF2F2 !important;
 }
 
 .btn-opacity:hover {
