@@ -63,6 +63,7 @@ LOCAL_APPS = [
     "apps.approvals",
     "apps.client_portal",
     "apps.onboarding",
+    "apps.external_api",
     "theme",
 ]
 
@@ -341,6 +342,11 @@ PLATFORM_CREDENTIALS_FROM_ENV = {
 
 # Webhook verification
 FACEBOOK_WEBHOOK_VERIFY_TOKEN = env("FACEBOOK_WEBHOOK_VERIFY_TOKEN", default="")
+
+# External API (MindMag Manager integration)
+API_TOKEN = env("API_TOKEN", default="")
+BRIGHTBEAN_WEBHOOK_URL = env("BRIGHTBEAN_WEBHOOK_URL", default="")
+BRIGHTBEAN_WEBHOOK_SECRET = env("BRIGHTBEAN_WEBHOOK_SECRET", default="")
 YOUTUBE_WEBHOOK_SECRET = env("YOUTUBE_WEBHOOK_SECRET", default="")
 
 # Rate limiting
