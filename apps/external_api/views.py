@@ -327,6 +327,11 @@ def update_post(request, post_id: UUID):
         update_fields.append("updated_at")
         post.save(update_fields=update_fields)
 
+    # Re-fetch with fresh prefetch cache so _post_to_dict sees latest PlatformPost statuses
+    post = Post.objects.prefetch_related(
+        "platform_posts__social_account"
+    ).get(pk=post.pk)
+
     return JsonResponse(_post_to_dict(post))
 
 
