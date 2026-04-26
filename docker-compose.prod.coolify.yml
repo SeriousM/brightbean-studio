@@ -64,6 +64,9 @@ services:
       # Google OAuth (user login, not platform publishing)
       - GOOGLE_AUTH_CLIENT_ID=${GOOGLE_AUTH_CLIENT_ID}
       - GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_AUTH_CLIENT_SECRET}
+      # Access control flags
+      - SIGNUP_DISABLED=${SIGNUP_DISABLED:-false}
+      - GOOGLE_LOGIN_DISABLED=${GOOGLE_LOGIN_DISABLED:-false}
       # Platform API credentials
       - PLATFORM_FACEBOOK_APP_ID=${PLATFORM_FACEBOOK_APP_ID}
       - PLATFORM_FACEBOOK_APP_SECRET=${PLATFORM_FACEBOOK_APP_SECRET}
