@@ -13,6 +13,9 @@ env = environ.Env(
     EMAIL_BACKEND_TYPE=(str, "smtp"),
     SENTRY_DSN=(str, ""),
     REDIS_URL=(str, ""),
+    # Access control flags
+    SIGNUP_DISABLED=(bool, False),
+    GOOGLE_LOGIN_DISABLED=(bool, False),
 )
 
 environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
@@ -100,6 +103,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "apps.notifications.context_processors.unread_notification_count",
                 "apps.common.context_processors.sidebar_context",
+                "apps.common.context_processors.access_flags",
                 "apps.onboarding.context_processors.onboarding_checklist",
             ],
         },
@@ -200,6 +204,12 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
+
+# Access control flags
+# Set SIGNUP_DISABLED=true to prevent any new user registrations (email or social).
+# Set GOOGLE_LOGIN_DISABLED=true to block all Google OAuth login/signup flows.
+SIGNUP_DISABLED = env("SIGNUP_DISABLED")
+GOOGLE_LOGIN_DISABLED = env("GOOGLE_LOGIN_DISABLED")
 
 # Google OAuth for user login/signup (separate from PLATFORM_GOOGLE_* used for publishing)
 GOOGLE_AUTH_CLIENT_ID = env("GOOGLE_AUTH_CLIENT_ID", default="")

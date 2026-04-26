@@ -3,6 +3,21 @@
 from django.db.models import Count, Q
 
 
+def access_flags(request):
+    """Inject global access-control flags into every template context.
+
+    Provides:
+        SIGNUP_DISABLED: True when new user registrations are blocked.
+        GOOGLE_LOGIN_DISABLED: True when Google OAuth is disabled.
+    """
+    from django.conf import settings
+
+    return {
+        "SIGNUP_DISABLED": getattr(settings, "SIGNUP_DISABLED", False),
+        "GOOGLE_LOGIN_DISABLED": getattr(settings, "GOOGLE_LOGIN_DISABLED", False),
+    }
+
+
 def sidebar_context(request):
     """Inject sidebar data into every template context.
 
