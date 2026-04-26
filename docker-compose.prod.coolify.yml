@@ -29,8 +29,9 @@ services:
 
   # Web application - Gunicorn on port 8000
   app:
+    labels:
+      - crowdsec.enable=true
     build: .
-    restart: unless-stopped
     environment:
       # Coolify routing: exposes port 8000, injects domain into SERVICE_FQDN_APP
       - SERVICE_FQDN_APP_8000
@@ -97,7 +98,6 @@ services:
   worker:
     build: .
     command: python manage.py process_tasks
-    restart: unless-stopped
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
@@ -144,7 +144,6 @@ services:
         sleep 86400;
       done
       "
-    restart: unless-stopped
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
@@ -171,7 +170,6 @@ services:
   # PostgreSQL 16 database
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-brightbean}
       - POSTGRES_USER=${SERVICE_USER_POSTGRES}
