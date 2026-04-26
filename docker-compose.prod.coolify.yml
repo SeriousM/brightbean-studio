@@ -1,0 +1,189 @@
+# documentation: https://github.com/brightbeanxyz/brightbean-studio
+# slogan: Open-source social media management for creators, agencies, and SMBs - schedule, publish, and monitor across 12+ platforms without per-seat limits.
+# category: productivity
+# tags: social-media,django,python,self-hosted,open-source,scheduling,content-management
+# port: 8000
+
+# Deploy via: Coolify > New Resource > Application > Public Git Repository
+# Repo: https://github.com/brightbeanxyz/brightbean-studio
+# Build pack: Docker Compose
+# Docker Compose location: /docker-compose-coolify.yml
+
+services:
+
+  # One-shot migration runner - runs before app starts, exits when done
+  migrate:
+    build: .
+    command: python manage.py migrate --noinput
+    restart: "no"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
+      - ENCRYPTION_KEY_SALT=${SERVICE_PASSWORD_64_SALT}
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-brightbean}
+      - ALLOWED_HOSTS=${SERVICE_FQDN_APP:-localhost}
+      - APP_URL=https://${SERVICE_FQDN_APP:-localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Web application - Gunicorn on port 8000
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Coolify routing: exposes port 8000, injects domain into SERVICE_FQDN_APP
+      - SERVICE_FQDN_APP_8000
+      # Django core
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
+      - ENCRYPTION_KEY_SALT=${SERVICE_PASSWORD_64_SALT}
+      - DEBUG=false
+      - ALLOWED_HOSTS=${SERVICE_FQDN_APP}
+      - APP_URL=https://${SERVICE_FQDN_APP}
+      # Database
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-brightbean}
+      # Storage (local by default; set STORAGE_BACKEND=s3 for S3/R2)
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      - MEDIA_ROOT=/app/media
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_CUSTOM_DOMAIN=${S3_CUSTOM_DOMAIN}
+      - S3_REGION_NAME=${S3_REGION_NAME:-auto}
+      # Email
+      - EMAIL_BACKEND_TYPE=${EMAIL_BACKEND_TYPE:-smtp}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-true}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@example.com}
+      # Google OAuth (user login, not platform publishing)
+      - GOOGLE_AUTH_CLIENT_ID=${GOOGLE_AUTH_CLIENT_ID}
+      - GOOGLE_AUTH_CLIENT_SECRET=${GOOGLE_AUTH_CLIENT_SECRET}
+      # Platform API credentials
+      - PLATFORM_FACEBOOK_APP_ID=${PLATFORM_FACEBOOK_APP_ID}
+      - PLATFORM_FACEBOOK_APP_SECRET=${PLATFORM_FACEBOOK_APP_SECRET}
+      - PLATFORM_INSTAGRAM_APP_ID=${PLATFORM_INSTAGRAM_APP_ID}
+      - PLATFORM_INSTAGRAM_APP_SECRET=${PLATFORM_INSTAGRAM_APP_SECRET}
+      - PLATFORM_LINKEDIN_CLIENT_ID=${PLATFORM_LINKEDIN_CLIENT_ID}
+      - PLATFORM_LINKEDIN_CLIENT_SECRET=${PLATFORM_LINKEDIN_CLIENT_SECRET}
+      - PLATFORM_TIKTOK_CLIENT_KEY=${PLATFORM_TIKTOK_CLIENT_KEY}
+      - PLATFORM_TIKTOK_CLIENT_SECRET=${PLATFORM_TIKTOK_CLIENT_SECRET}
+      - PLATFORM_GOOGLE_CLIENT_ID=${PLATFORM_GOOGLE_CLIENT_ID}
+      - PLATFORM_GOOGLE_CLIENT_SECRET=${PLATFORM_GOOGLE_CLIENT_SECRET}
+      - PLATFORM_PINTEREST_APP_ID=${PLATFORM_PINTEREST_APP_ID}
+      - PLATFORM_PINTEREST_APP_SECRET=${PLATFORM_PINTEREST_APP_SECRET}
+      # Inbound webhooks
+      - FACEBOOK_WEBHOOK_VERIFY_TOKEN=${FACEBOOK_WEBHOOK_VERIFY_TOKEN}
+      - YOUTUBE_WEBHOOK_SECRET=${YOUTUBE_WEBHOOK_SECRET}
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # Background task worker - publishes scheduled posts
+  worker:
+    build: .
+    command: python manage.py process_tasks
+    restart: unless-stopped
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
+      - ENCRYPTION_KEY_SALT=${SERVICE_PASSWORD_64_SALT}
+      - DEBUG=false
+      - ALLOWED_HOSTS=${SERVICE_FQDN_APP}
+      - APP_URL=https://${SERVICE_FQDN_APP}
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-brightbean}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      - MEDIA_ROOT=/app/media
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION_NAME=${S3_REGION_NAME:-auto}
+      - PLATFORM_FACEBOOK_APP_ID=${PLATFORM_FACEBOOK_APP_ID}
+      - PLATFORM_FACEBOOK_APP_SECRET=${PLATFORM_FACEBOOK_APP_SECRET}
+      - PLATFORM_INSTAGRAM_APP_ID=${PLATFORM_INSTAGRAM_APP_ID}
+      - PLATFORM_INSTAGRAM_APP_SECRET=${PLATFORM_INSTAGRAM_APP_SECRET}
+      - PLATFORM_LINKEDIN_CLIENT_ID=${PLATFORM_LINKEDIN_CLIENT_ID}
+      - PLATFORM_LINKEDIN_CLIENT_SECRET=${PLATFORM_LINKEDIN_CLIENT_SECRET}
+      - PLATFORM_TIKTOK_CLIENT_KEY=${PLATFORM_TIKTOK_CLIENT_KEY}
+      - PLATFORM_TIKTOK_CLIENT_SECRET=${PLATFORM_TIKTOK_CLIENT_SECRET}
+      - PLATFORM_GOOGLE_CLIENT_ID=${PLATFORM_GOOGLE_CLIENT_ID}
+      - PLATFORM_GOOGLE_CLIENT_SECRET=${PLATFORM_GOOGLE_CLIENT_SECRET}
+      - PLATFORM_PINTEREST_APP_ID=${PLATFORM_PINTEREST_APP_ID}
+      - PLATFORM_PINTEREST_APP_SECRET=${PLATFORM_PINTEREST_APP_SECRET}
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # Daily maintenance - clearsessions + orphaned media cleanup
+  maintenance:
+    build: .
+    command: >
+      sh -c "
+      while true; do
+        python manage.py clearsessions;
+        python manage.py cleanup_orphaned_media --once --min-age-days 14;
+        sleep 86400;
+      done
+      "
+    restart: unless-stopped
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - SECRET_KEY=${SERVICE_PASSWORD_64_APP}
+      - ENCRYPTION_KEY_SALT=${SERVICE_PASSWORD_64_SALT}
+      - DEBUG=false
+      - ALLOWED_HOSTS=${SERVICE_FQDN_APP}
+      - APP_URL=https://${SERVICE_FQDN_APP}
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-brightbean}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      - MEDIA_ROOT=/app/media
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION_NAME=${S3_REGION_NAME:-auto}
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # PostgreSQL 16 database
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-brightbean}
+      - POSTGRES_USER=${SERVICE_USER_POSTGRES}
+      - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  postgres_data:
+  media_data:
